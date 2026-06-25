@@ -95,13 +95,14 @@ function ServiceCard({ item }: { item: (typeof services)[number] }) {
             <Link href="/refund-policy" className="underline hover:text-[#2563EB]">Refund Policy</Link>.
           </span>
         </label>
-        <button
-          disabled={!agreed}
-          className="inline-flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-slate-900 to-slate-700 text-sm font-bold text-white transition hover:from-[#2563EB] hover:to-[#1d4ed8] disabled:opacity-40 disabled:cursor-not-allowed group-hover:shadow-md"
+        <a
+          href={agreed ? item.url : undefined}
+          onClick={(e) => { if (!agreed) e.preventDefault(); }}
+          className={`inline-flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-gradient-to-r text-sm font-bold text-white transition group-hover:shadow-md ${agreed ? 'from-slate-900 to-slate-700 hover:from-[#2563EB] hover:to-[#1d4ed8] cursor-pointer' : 'from-slate-400 to-slate-500 cursor-not-allowed opacity-60'}`}
         >
           Pay ${item.price}
           <ChevronRight className="h-4 w-4" />
-        </button>
+        </a>
       </div>
     </div>
   );
