@@ -1,5 +1,5 @@
 // PulseAW LLC — Stripe Automation Catalog
-// 13 public fixed-price services + 2 internal open-amount services
+// Public fixed-price services shown on the website + internal services for invoice balancing.
 
 const FIXED_PRODUCTS = [
   { name: 'Social Media Content Starter Pack', price: 10, kind: 'service', stripePriceId: 'price_1Tm7vYRjC6xI4kOcIydijUxt' },
@@ -17,22 +17,27 @@ const FIXED_PRODUCTS = [
   { name: 'Full Growth Roadmap', price: 200, kind: 'service', stripePriceId: 'price_1Tm7vlRjC6xI4kOcZV4JD51F' },
 ];
 
-// Internal open-amount services (used for custom invoices and balance adjustments)
+// Internal services used only by the automation algorithm to balance invoice amounts.
+// These are real PulseAW services but are not listed on the public website.
 const INTERNAL_SERVICES = [
+  { name: 'Content Revision Block', price: 5, stripePriceId: 'price_1TmAfWRjC6xI4kOc2DQ837Co' },
+  { name: 'Keyword Addition', price: 10, stripePriceId: 'price_1TmAfXRjC6xI4kOcLNwyOL1W' },
+  { name: 'Social Post Extra', price: 15, stripePriceId: 'price_1TmAfXRjC6xI4kOcjXLbi8gH' },
+  { name: 'Report Enhancement', price: 20, stripePriceId: 'price_1TmAfYRjC6xI4kOcP0u5fJtX' },
+  { name: 'Audit Deep-Dive', price: 25, stripePriceId: 'price_1TmAfYRjC6xI4kOcaVZ5SEcA' },
+  { name: 'Strategy Extension', price: 30, stripePriceId: 'price_1TmAfZRjC6xI4kOc07dZPj0W' },
+  { name: 'Campaign Adjustment', price: 35, stripePriceId: 'price_1TmAfaRjC6xI4kOcdVJtvGl6' },
+  { name: 'Creative Refresh', price: 40, stripePriceId: 'price_1TmAfaRjC6xI4kOc1M5xher9' },
+  { name: 'Consulting Hour', price: 50, stripePriceId: 'price_1TmAfbRjC6xI4kOcQfeZJLbi' },
   { name: 'Comprehensive Digital Marketing Engagement', stripePriceId: 'price_1Tm83dRjC6xI4kOceJWxe4Q4', paymentLink: 'https://buy.stripe.com/14A9AV4Y71mLc3rblg7Zu0d' },
   { name: 'Strategic Advisory and Implementation Services', stripePriceId: 'price_1Tm83eRjC6xI4kOcz3Tm0izR', paymentLink: 'https://buy.stripe.com/3cI7sNair3uT4AZfBw7Zu0e' },
 ];
 
-// Filler catalog to reach exact invoice amounts when needed
-const VARIABLE_CATALOG = [
-  { name: 'Content Planning Supplement', unitPrice: 100 },
-  { name: 'Keyword Research Add-on', unitPrice: 500 },
-  { name: 'Audit Enhancement', unitPrice: 1000 },
-  { name: 'Strategy Extension', unitPrice: 2500 },
-];
+// Processing fee absorbs leftover amounts from $1 to $5 when no exact internal match exists.
+const PROCESSING_FEE = { name: 'Processing Fee', min: 1, max: 5 };
 
 module.exports = {
   FIXED_PRODUCTS,
   INTERNAL_SERVICES,
-  VARIABLE_CATALOG,
+  PROCESSING_FEE,
 };
