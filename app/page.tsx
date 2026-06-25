@@ -29,19 +29,23 @@ import {
   ChevronDown,
   ChevronUp,
   ShoppingCart,
-} from "lucide-react";
+  Megaphone,
+  Zap} from "lucide-react";
 
 const services = [
-  { icon: <PenTool className="h-5 w-5" />, name: "Social Content Starter Pack", price: 10, desc: "Editable ideas and captions for a fast content launch." },
-  { icon: <Layers className="h-5 w-5" />, name: "Hashtag Strategy Pack", price: 15, desc: "Platform-ready hashtag sets organized by niche." },
-  { icon: <FileText className="h-5 w-5" />, name: "Brand Voice Guide Template", price: 25, desc: "Simple messaging guide to keep your content consistent." },
-  { icon: <Search className="h-5 w-5" />, name: "SEO Keyword Snapshot", price: 35, desc: "Quick keyword research with priority terms and intent." },
-  { icon: <Camera className="h-5 w-5" />, name: "Social Media Account Audit", price: 50, desc: "One-profile audit with actionable optimization notes." },
-  { icon: <BarChart3 className="h-5 w-5" />, name: "Website SEO Quick Audit", price: 75, desc: "Technical overview plus a ranked improvement checklist." },
-  { icon: <MessageSquare className="h-5 w-5" />, name: "Marketing Strategy Call", price: 95, desc: "Focused strategy call with a written follow-up summary." },
-  { icon: <Rocket className="h-5 w-5" />, name: "Ads Campaign Review", price: 125, desc: "Campaign review with clear fixes for better performance." },
-  { icon: <Globe className="h-5 w-5" />, name: "Landing Page Copy + Wireframe", price: 150, desc: "Conversion-focused copy and layout direction for one page." },
-  { icon: <TrendingUp className="h-5 w-5" />, name: "Full Growth Roadmap", price: 200, desc: "90-day plan with priorities, channels, and next steps." },
+  { icon: <PenTool className="h-5 w-5" />, name: "Social Media Content Starter Pack", price: 10, desc: "Editable ideas and captions for a fast content launch.", url: "https://buy.stripe.com/cNicN7fCLfdBffD1KG7Zu00" },
+  { icon: <Layers className="h-5 w-5" />, name: "Hashtag Strategy Pack", price: 15, desc: "Platform-ready hashtag sets organized by niche.", url: "https://buy.stripe.com/eVq8wR4Y79Thd7vahc7Zu01" },
+  { icon: <FileText className="h-5 w-5" />, name: "Brand Voice Guide Template", price: 25, desc: "Simple messaging guide to keep your content consistent.", url: "https://buy.stripe.com/8x2bJ3gGP7L92sRfBw7Zu02" },
+  { icon: <Search className="h-5 w-5" />, name: "SEO Keyword Snapshot", price: 35, desc: "Quick keyword research with priority terms and intent.", url: "https://buy.stripe.com/5kQ28teyH9ThffD4WS7Zu03" },
+  { icon: <Camera className="h-5 w-5" />, name: "Social Media Account Audit", price: 50, desc: "One-profile audit with actionable optimization notes.", url: "https://buy.stripe.com/dRmbJ3fCL3uT2sR9d87Zu04" },
+  { icon: <BarChart3 className="h-5 w-5" />, name: "Website SEO Quick Audit", price: 75, desc: "Technical overview plus a ranked improvement checklist.", url: "https://buy.stripe.com/14A14p2PZfdB9VjfBw7Zu05" },
+  { icon: <MessageSquare className="h-5 w-5" />, name: "Marketing Strategy Call", price: 95, desc: "Focused strategy call with a written follow-up summary.", url: "https://buy.stripe.com/6oUeVf76ffdB9Vj4WS7Zu06" },
+  { icon: <Megaphone className="h-5 w-5" />, name: "Facebook / Instagram Ad Setup", price: 110, desc: "Campaign structure, creative direction, and tracking setup.", url: "https://buy.stripe.com/bJe9AVfCL9ThgjHexs7Zu07" },
+  { icon: <Search className="h-5 w-5" />, name: "Google Ads Search Setup", price: 125, desc: "Search campaign with keywords, ads, and conversion tracking.", url: "https://buy.stripe.com/28EcN74Y7c1p5F3cpk7Zu08" },
+  { icon: <Rocket className="h-5 w-5" />, name: "Ads Campaign Review", price: 145, desc: "Campaign review with clear fixes for better performance.", url: "https://buy.stripe.com/eVq8wRair3uTgjH9d87Zu09" },
+  { icon: <Globe className="h-5 w-5" />, name: "Landing Page Copy + Wireframe", price: 150, desc: "Conversion-focused copy and layout direction for one page.", url: "https://buy.stripe.com/eVqeVfbmvfdB2sR7507Zu0a" },
+  { icon: <Zap className="h-5 w-5" />, name: "Full Social Media Management", price: 175, desc: "One month of posts, stories, community replies, and reporting.", url: "https://buy.stripe.com/00wdRbfCL8PdgjHfBw7Zu0b" },
+  { icon: <TrendingUp className="h-5 w-5" />, name: "Full Growth Roadmap", price: 200, desc: "90-day plan with priorities, channels, and next steps.", url: "https://buy.stripe.com/fZu7sN2PZfdB7Nb4WS7Zu0c" },
 ] as const;
 
 const steps = [
