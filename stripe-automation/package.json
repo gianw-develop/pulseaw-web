@@ -1,0 +1,29 @@
+{
+  "name": "awgenesis-stripe-automation",
+  "version": "1.0.0",
+  "description": "AWGenesis Stripe Automation — backend de facturación híbrida",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "stripe:create-products": "node scripts/create-stripe-products.js",
+    "stripe:create-products:dry": "node scripts/create-stripe-products.js --dry-run",
+    "stripe:create-products:write": "node scripts/create-stripe-products.js --write",
+    "stripe:create-payment-links": "node scripts/create-stripe-payment-links.js",
+    "stripe:create-payment-links:dry": "node scripts/create-stripe-payment-links.js --dry-run",
+    "stripe:create-payment-links:recreate": "node scripts/create-stripe-payment-links.js --recreate",
+    "stripe:export-phones": "node scripts/export-phones.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "stripe": "^14.21.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
