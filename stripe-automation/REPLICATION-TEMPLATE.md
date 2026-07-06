@@ -47,6 +47,7 @@ Sin esto, el número se ve como una secuencia visible al cliente (`-0001`, `-000
 - **SIEMPRE configurar límite de monto**: mínimo $10, máximo $200
 - Sin límite, los clientes escriben montos erróneos ($1, $2, $3) y se generan facturas inválidas
 - **No agregar** `allow_promotion_codes` — Stripe lo rechaza en links de monto abierto
+- **CRÍTICO — `minimum`/`maximum` son inmutables**: una vez creado el Price, Stripe no permite cambiar esos valores desde el dashboard ni por API. Si los límites están mal, hay que crear un Price nuevo, un link nuevo, y desactivar el anterior. No pierdas tiempo intentando editarlo.
 
 ---
 
