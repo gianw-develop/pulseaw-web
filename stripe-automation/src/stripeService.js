@@ -5,13 +5,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2023-10-16",
 });
 
-// Stripe scopes invoice numbering per customer `invoice_prefix`: the first
-// invoice created under a given prefix is always "-0001", and subsequent
-// invoices for that same prefix increment (0002, 0003, ...). Since we assign
-// a brand-new random prefix to the customer right before every invoice, each
-// invoice is guaranteed to be the first (and only) one under its prefix —
-// so the number is always "<RANDOM8>-0001" and never looks like a repeating
-// sequence to the client.
+// Stripe invoice numbers follow the format "<prefix>-<sequence>".
+// We randomize BOTH parts before every invoice:
+//   - invoice_prefix  → 8 random uppercase alphanumeric chars (e.g. "VDEK53A6")
+//   - next_invoice_sequence → random 4-digit number 1000–9999 (e.g. 7832)
+// Result: every invoice looks like "VDEK53A6-7832" — fully unpredictable,
+// never sequential, and never repeating the same suffix across clients.
 function generateInvoicePrefix() {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   const bytes = crypto.randomBytes(8);
@@ -50,14 +49,11 @@ async function findOrCreateStripeCustomer({ email, name, phone }) {
  * @returns {object} Stripe Invoice
  */
 async function createAndPayInvoice(customer, services, paymentIntentId, description = "") {
-  // Assign a fresh random invoice_prefix to the customer before creating the
-  // invoice. Stripe's invoice number is "<prefix>-<sequence>", and the
-  // sequence is scoped per prefix — a brand-new prefix always starts at
-  // 0001. This prevents the client-facing number from ever incrementing
-  // (0001, 0002, 0003...) in a way that looks like a repeating/duplicate
-  // invoice sequence.
+  // Randomize BOTH the prefix and the 4-digit sequence number so every
+  // invoice looks like "VDEK53A6-7832" — fully unpredictable and unique.
   await stripe.customers.update(customer.id, {
     invoice_prefix: generateInvoicePrefix(),
+    next_invoice_sequence: Math.floor(Math.random() * 9000) + 1000, // 1000–9999
   });
 
   // Create one invoice item per service.
