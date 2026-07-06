@@ -22,6 +22,9 @@ const FIXED_PRODUCTS = [
 const INTERNAL_SERVICES = [
   { name: 'Content Revision Block', price: 5, stripePriceId: 'price_1TmAfWRjC6xI4kOc2DQ837Co' },
   { name: 'Keyword Addition', price: 10, stripePriceId: 'price_1TmAfXRjC6xI4kOcLNwyOL1W' },
+  { name: 'Caption Rewrite', price: 10, stripePriceId: 'price_1TqD0PRjC6xI4kOcOZhxMKHc' },
+  { name: 'Hashtag Refresh', price: 10, stripePriceId: 'price_1TqD0PRjC6xI4kOcTwqGeHsJ' },
+  { name: 'Basic Image Edit', price: 10, stripePriceId: 'price_1TqD0QRjC6xI4kOckKKXtm42' },
   { name: 'Social Post Extra', price: 15, stripePriceId: 'price_1TmAfXRjC6xI4kOcjXLbi8gH' },
   { name: 'Report Enhancement', price: 20, stripePriceId: 'price_1TmAfYRjC6xI4kOcP0u5fJtX' },
   { name: 'Audit Deep-Dive', price: 25, stripePriceId: 'price_1TmAfYRjC6xI4kOcaVZ5SEcA' },

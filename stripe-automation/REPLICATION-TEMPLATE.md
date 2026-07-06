@@ -39,11 +39,13 @@ Pedir en un solo mensaje los **5 bloques** de abajo. Cuando el usuario los entre
 - [ ] Cuántos (recomendado: 2)
 - [ ] Nombre de cada uno (aparece en el checkout)
 - [ ] **IMPORTANTE**: estos links NO se crean con el script normal ni desde el Dashboard de Stripe. Crearlos con el snippet de Node.js al final de este archivo
+- [ ] **OBLIGATORIO — límite de monto**: configurar `custom_unit_amount.minimum` y `.maximum` en la Price (recomendado: mínimo $10, máximo $150). Sin este límite, clientes escriben montos por error ($1, $2, $3) que generan facturas inútiles y perjudican al negocio
 
 ### Bloque 5 — Catálogo interno (no público)
 - [ ] ¿Adaptar al negocio o usar el genérico del template?
 - [ ] Debe contener servicios reales de la empresa que NO aparezcan en la web
 - [ ] Precios sugeridos: $5, $10, $15, $20, $25, $30, $35, $40, $50
+- [ ] **Concentrar variedad en $10**: si el rango de pago real de clientes es $10–$150, la mayoría de los montos a rellenar caen en $10. Crear 3–4 servicios internos distintos a $10 (no solo uno) para tener variedad de nombres cuando el algoritmo necesita ese precio repetidamente
 - [ ] Montos de $1 a $5 se absorben como "Processing Fee", nunca como servicio interno
 - [ ] El algoritmo siempre prioriza servicios públicos fijos y completa con internos
 - [ ] Ningún servicio público puede repetirse dentro de la misma factura
@@ -56,7 +58,7 @@ Pedir en un solo mensaje los **5 bloques** de abajo. Cuando el usuario los entre
 |---|---|---|
 | Algoritmo | `src/algorithm.js` | Cascada `fixed → hybrid → internal → closest`. Siempre prioriza FIXED_PRODUCTS. Hash SHA-256 para evitar combos repetidos. |
 | Webhook | `src/webhookHandler.js` | Lock atómico, resolución de cliente desde 6 fuentes, generación de invoice. |
-| Stripe service | `src/stripeService.js` | Crea invoiceItems (con `stripePriceId` para fijos, amount+name para variables), invoice, paga out-of-band. |
+| Stripe service | `src/stripeService.js` | Crea invoiceItems (con `stripePriceId` para fijos, amount+name para variables), invoice, paga out-of-band. Rota `customer.invoice_prefix` a un valor random antes de cada invoice para que el número de factura siempre sea `<PREFIJO_NUEVO>-0001` (nunca se ve como secuencia repetida 0001/0002/0003). |
 | Supabase service | `src/supabaseService.js` | Locks distribuidos, hashes usados, idempotencia. |
 | Script Products | `scripts/create-stripe-products.js` | Registra Products + Prices en Stripe (una sola vez por LLC). |
 | Script Payment Links | `scripts/create-stripe-payment-links.js` | Crea Payment Links fijos con config compliance. |
@@ -199,9 +201,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-
     customer_creation: 'always'
     // NO incluir allow_promotion_codes — Stripe lo rechaza con custom_unit_amount
   };
-  const price1 = await stripe.prices.create({ currency: 'usd', custom_unit_amount: { enabled: true }, product_data: { name: 'Custom Package A' } });
+  const price1 = await stripe.prices.create({ currency: 'usd', custom_unit_amount: { enabled: true, minimum: 1000, maximum: 15000 }, product_data: { name: 'Custom Package A' } });
   const link1 = await stripe.paymentLinks.create({ ...config, line_items: [{ price: price1.id, quantity: 1 }] });
-  const price2 = await stripe.prices.create({ currency: 'usd', custom_unit_amount: { enabled: true }, product_data: { name: 'Custom Package B' } });
+  const price2 = await stripe.prices.create({ currency: 'usd', custom_unit_amount: { enabled: true, minimum: 1000, maximum: 15000 }, product_data: { name: 'Custom Package B' } });
   const link2 = await stripe.paymentLinks.create({ ...config, line_items: [{ price: price2.id, quantity: 1 }] });
   console.log('Link 1:', link1.url);
   console.log('Link 2:', link2.url);
@@ -209,6 +211,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-
 "
 ```
 Cambiar los nombres `'Custom Package A'` y `'Custom Package B'` por los del Bloque 4.
+`minimum`/`maximum` van en **centavos** (1000 = $10, 15000 = $150). Sin este límite, clientes escriben montos como $1–$3 por error, generando facturas inútiles.
 
 ### PASO 12 — Ejecutar schema en Supabase
 Abrir **Supabase → SQL Editor** y ejecutar `supabase_schema.sql`.
@@ -240,6 +243,9 @@ Crea las tablas: `customers`, `invoices`, `payment_locks`.
 | Payment Links fijos fallaban al crear | Stripe requería ToS/Privacy URL configuradas | Crear páginas legales y configurar en Stripe antes de ejecutar scripts |
 | Botones de pago no redirigían | Se mantuvo `disabled` en un elemento `<a>` | Usar `<a>` con `href` condicional y `preventDefault` si no hay acuerdo |
 | Open-amount links fallaban | Se intentaba usar `allow_promotion_codes` con `custom_unit_amount` | No incluir `allow_promotion_codes` en Payment Links de monto abierto |
+| Open-amount links sin límite recibían pagos de $1–$3 | `custom_unit_amount` se creó sin `minimum`/`maximum` | Siempre fijar `minimum: 1000, maximum: 15000` (centavos) al crear la Price — rango real de pago de clientes: $10–$150 |
+| Catálogo interno concentraba solo 1 servicio a $10 | El precio más frecuente que paga el cliente ($10) solo tenía un nombre disponible | Crear 3–4 servicios internos distintos al precio más frecuente del negocio (no solo uno), para variedad de nombres |
+| Número de factura se veía como secuencia repetida (`-0001`, `-0002`) | Stripe asigna un `invoice_prefix` fijo por cliente y el sufijo incrementa en cada factura de ese cliente | Rotar `customer.invoice_prefix` a un valor random ANTES de cada invoice (`stripeService.js`). Cada invoice queda como la primera bajo su propio prefijo → siempre `-0001`, nunca incrementa de forma visible |
 
 ---
 
