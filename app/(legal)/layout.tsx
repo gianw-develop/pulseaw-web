@@ -43,6 +43,9 @@ export default function LegalLayout({
               </p>
             </div>
             <div className="flex flex-wrap gap-5 text-sm text-zinc-600">
+              <Link href="/imprint" className="hover:text-zinc-900">
+                Imprint
+              </Link>
               <Link href="/terms-of-service" className="hover:text-zinc-900">
                 Terms of Service
               </Link>

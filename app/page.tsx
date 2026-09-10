@@ -623,6 +623,7 @@ export default function Home() {
           </Link>
           <p>© {new Date().getFullYear()} PulseAW LLC</p>
           <nav aria-label="Legal">
+            <Link href="/imprint">Imprint</Link>
             <Link href="/terms-of-service">Terms</Link>
             <Link href="/privacy-policy">Privacy</Link>
             <Link href="/refund-policy">Refund Policy</Link>
