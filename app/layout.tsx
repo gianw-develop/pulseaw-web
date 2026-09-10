@@ -7,6 +7,11 @@ const inter = localFont({
   display: "swap",
   variable: "--font-inter",
 });
+const sora = localFont({
+  src: "./fonts/sora-latin.woff2",
+  display: "swap",
+  variable: "--font-sora",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.pulseaw.com"),
@@ -38,7 +43,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${sora.variable} h-full antialiased`}
+    >
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>

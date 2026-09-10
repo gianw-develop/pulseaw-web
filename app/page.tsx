@@ -15,6 +15,8 @@ import {
   Layers3,
   Lightbulb,
   Mail,
+  MapPin,
+  Phone,
   Menu,
   Minus,
   PanelsTopLeft,
@@ -563,18 +565,48 @@ export default function Home() {
           aria-labelledby="contact-title"
         >
           <div className="container contact-inner">
-            <div>
+            <div className="contact-intro">
               <p className="eyebrow">Let’s talk</p>
               <h2 id="contact-title">Let’s build your next chapter.</h2>
-              <p>Tell us what you are building.</p>
+              <p>
+                Tell us what you are building, where you want to go, and what
+                needs to happen next.
+              </p>
+              <button className="button" onClick={() => openContact()}>
+                Discuss your project <ArrowUpRight size={18} />
+              </button>
             </div>
-            <button className="button" onClick={() => openContact()}>
-              Discuss your project <ArrowUpRight size={18} />
-            </button>
-            <a href="mailto:info@pulseaw.com" className="contact-email">
-              <Mail size={22} strokeWidth={1.4} />
-              info@pulseaw.com
-            </a>
+            <address className="contact-details">
+              <a href="mailto:info@pulseaw.com" className="contact-detail">
+                <Mail size={21} strokeWidth={1.5} />
+                <span>
+                  <span className="contact-label">Email us</span>
+                  <span className="contact-value">info@pulseaw.com</span>
+                </span>
+                <ArrowUpRight size={18} className="contact-arrow" />
+              </a>
+              <a href="tel:+12513321334" className="contact-detail">
+                <Phone size={21} strokeWidth={1.5} />
+                <span>
+                  <span className="contact-label">Call us</span>
+                  <span className="contact-value">+1 (251) 332-1334</span>
+                </span>
+                <ArrowUpRight size={18} className="contact-arrow" />
+              </a>
+              <div className="contact-detail">
+                <MapPin size={21} strokeWidth={1.5} />
+                <span>
+                  <span className="contact-label">Our address</span>
+                  <span className="contact-value contact-address">
+                    3721 Beecher Rd
+                    <br />
+                    Flint, Michigan 48503
+                    <br />
+                    United States
+                  </span>
+                </span>
+              </div>
+            </address>
           </div>
         </section>
       </main>

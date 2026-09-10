@@ -61,7 +61,8 @@ p {
 h1,
 h2,
 h3 {
-  letter-spacing: -0.045em;
+  font-family: var(--font-sora), Arial, sans-serif;
+  letter-spacing: -0.055em;
 }
 h2 {
   font-size: clamp(30px, 3.25vw, 47px);
@@ -793,36 +794,87 @@ svg {
   background:
     radial-gradient(ellipse at 80% 90%, #122746, transparent 50%), var(--navy);
   color: white;
-  padding: 58px 0;
+  padding: 78px 0;
 }
 .contact-inner {
-  display: flex;
-  gap: 40px;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 90px;
   align-items: center;
 }
-.contact-inner > div {
-  margin-right: auto;
+.contact-intro h2 {
+  font-size: clamp(32px, 3.2vw, 46px);
+  max-width: 520px;
 }
-.contact-inner h2 {
-  font-size: clamp(27px, 2.7vw, 39px);
+.contact-intro .eyebrow {
+  color: #74acff;
+  margin-bottom: 16px;
 }
-.contact-inner .eyebrow {
-  color: #559cfd;
-  margin-bottom: 12px;
-}
-.contact-inner p:not(.eyebrow) {
+.contact-intro p:not(.eyebrow) {
   color: #becce2;
   font-size: 14px;
-  margin-top: 10px;
+  margin-top: 18px;
+  max-width: 400px;
 }
-.contact-email {
+.contact-intro .button {
+  margin-top: 28px;
+}
+.contact-details {
+  font-style: normal;
+  border-left: 1px solid #ffffff24;
+  padding-left: 48px;
+}
+.contact-detail {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  color: #d7e1f0;
-  font-size: 13px;
-  border-left: 1px solid #52617a;
-  padding-left: 31px;
+  align-items: flex-start;
+  gap: 18px;
+  color: #f2f6ff;
+  padding: 23px 0;
+  border-bottom: 1px solid #ffffff1c;
+}
+.contact-detail:first-child {
+  padding-top: 0;
+}
+.contact-detail:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.contact-detail > svg:first-child {
+  color: #74acff;
+  margin-top: 4px;
+}
+.contact-label {
+  display: block;
+  color: #aabbd4;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.contact-value {
+  display: block;
+  font-family: var(--font-sora), Arial, sans-serif;
+  font-size: clamp(16px, 1.7vw, 23px);
+  letter-spacing: -0.035em;
+  line-height: 1.5;
+}
+.contact-address {
+  font-family: var(--font-inter), Arial, sans-serif;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+.contact-arrow {
+  margin-left: auto;
+  margin-top: 26px;
+  color: #74acff;
+  transition: transform 0.2s ease;
+}
+a.contact-detail:hover .contact-value {
+  color: #91baff;
+}
+a.contact-detail:hover .contact-arrow {
+  transform: translate(3px, -3px);
 }
 .site-footer {
   padding: 32px 0;
@@ -1109,18 +1161,10 @@ body:has(dialog[open]) {
     font-size: 9px;
   }
   .contact-inner {
-    flex-wrap: wrap;
-    gap: 25px;
+    gap: 40px;
   }
-  .contact-inner > div {
-    flex-basis: 54%;
-  }
-  .contact-email {
-    border-left: 0;
-    padding-left: 0;
-  }
-  .contact-inner h2 {
-    font-size: 31px;
+  .contact-details {
+    padding-left: 30px;
   }
   .faq-grid {
     gap: 40px;
@@ -1529,25 +1573,29 @@ body:has(dialog[open]) {
     font-size: 12px;
   }
   .contact-section {
-    padding: 45px 0;
+    padding: 52px 0;
   }
   .contact-inner {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 25px;
+    grid-template-columns: 1fr;
+    gap: 38px;
   }
-  .contact-inner h2 {
+  .contact-intro h2 {
     font-size: 32px;
     max-width: 360px;
   }
-  .contact-inner p:not(.eyebrow) {
+  .contact-intro p:not(.eyebrow) {
     font-size: 13px;
   }
-  .contact-inner .button {
-    padding: 17px 20px;
+  .contact-details {
+    border-left: 0;
+    border-top: 1px solid #ffffff24;
+    padding: 30px 0 0;
   }
-  .contact-email {
-    font-size: 13px;
+  .contact-value {
+    font-size: 20px;
+  }
+  .contact-address {
+    font-size: 14px;
   }
   .footer-inner {
     flex-wrap: wrap;
@@ -1657,9 +1705,17 @@ body:has(dialog[open]) {
 }
 
 @media (max-width: 700px) {
-  .contact-dialog input, .contact-dialog select, .contact-dialog textarea { font-size: 16px; }
+  .contact-dialog input,
+  .contact-dialog select,
+  .contact-dialog textarea {
+    font-size: 16px;
+  }
 }
 @media (min-width: 701px) and (max-width: 900px) {
-  .hero h1 { font-size: 48px; }
-  .hero-description { max-width: 340px; }
+  .hero h1 {
+    font-size: 48px;
+  }
+  .hero-description {
+    max-width: 340px;
+  }
 }
