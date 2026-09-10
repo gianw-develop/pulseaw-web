@@ -1022,7 +1022,16 @@ body:has(dialog[open]) {
 }
 @media (min-width: 1600px) {
   .hero-art {
-    left: 43%;
+    left: calc(50% - 112px);
+    right: auto;
+    width: 912px;
+    mask-image: linear-gradient(to right, #000 88%, transparent);
+  }
+  .hero:after {
+    left: 50%;
+    right: auto;
+    width: 1600px;
+    transform: translateX(-50%);
   }
   .hero-inner {
     min-height: 610px;

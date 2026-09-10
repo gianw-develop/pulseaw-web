@@ -192,7 +192,7 @@ export default function Home() {
               alt="Four architectural panels connected by a blue pulse: Market, Launch, Acquire and Convert."
               fill
               preload
-              sizes="(max-width: 700px) 100vw, 65vw"
+              sizes="(max-width: 700px) 100vw, (min-width: 1600px) 912px, 65vw"
             />
           </div>
           <div className="container hero-inner">
