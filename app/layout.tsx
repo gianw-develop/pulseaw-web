@@ -1,16 +1,35 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const inter = Inter({
+const inter = localFont({
+  src: "./fonts/inter-latin.woff2",
+  display: "swap",
   variable: "--font-inter",
-  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "PulseAW LLC | Stripe-ready Digital Marketing Services",
+  metadataBase: new URL("https://www.pulseaw.com"),
+  title: "PulseAW | Premium Marketing for New Entrepreneurs",
   description:
-    "Fixed-price digital marketing services with Stripe checkout, legal pages, and a clean 10-service catalog.",
+    "Launch your next chapter with PulseAW. Six focused marketing engagements, from market strategy to integrated acquisition systems. Projects from $1,500 to $8,000.",
+  openGraph: {
+    title: "Your ambition. Our next move. | PulseAW",
+    description:
+      "Premium marketing for new entrepreneurs. Strategy, funnels, automation and acquisition — built around your business.",
+    url: "https://www.pulseaw.com",
+    siteName: "PulseAW",
+    type: "website",
+    images: [
+      {
+        url: "/images/hero.webp",
+        width: 1536,
+        height: 1024,
+        alt: "PulseAW marketing acquisition system",
+      },
+    ],
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({
@@ -23,9 +42,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
-      <body className="min-h-full flex flex-col bg-white text-zinc-900">
-        {children}
-      </body>
+      <body className="min-h-full bg-white">{children}</body>
     </html>
   );
 }

@@ -37,3 +37,6 @@ yarn-error.log*
 
 # Stripe automation subproject dependencies
 stripe-automation/node_modules/
+
+# Generated Next.js TypeScript references
+next-env.d.ts
