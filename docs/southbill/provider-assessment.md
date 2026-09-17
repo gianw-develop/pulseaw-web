@@ -43,7 +43,7 @@ eligibility remain unverified. Its presence in a catalog is not an enabled payme
 
 ## Still missing
 
-- Confirmed merchant ID, partner/rail and account-specific capabilities.
+- Confirmed partner/rail and account-specific capabilities. A provider merchant ID is not a documented setup prerequisite; explicit IDs in authentic payloads still require a verified binding.
 - Dedicated webhook endpoint/signing secret and an authentic signed delivery.
 - SouthBill account identity still needs verification; Supabase project and isolated Vercel authorization are now confirmed.
 - Permanent open-amount link contract and trusted buyer/scope mapping.

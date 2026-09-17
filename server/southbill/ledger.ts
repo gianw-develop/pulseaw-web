@@ -18,7 +18,8 @@ export class Ledger {
   readonly db: Database;
   readonly account: Account;
   constructor(db: Database, account: Account) { assertAccount(account); this.db = db; this.account = account; }
-  private params() { return [this.account.merchantId, this.account.livemode]; }
+  // Keep the installed SQL column name; its value is the internal account namespace.
+  private params() { return [this.account.accountKey, this.account.livemode]; }
   async enqueue(event: Event): Promise<'accepted' | 'duplicate'> {
     const hash = digest(event);
     const safeObject = Object.fromEntries(['id','object','payment_intent','checkout_session','charge'].filter(key => typeof event.data.object[key] === 'string').map(key => [key,event.data.object[key]]));
@@ -51,7 +52,8 @@ export class Ledger {
   }
   async registerAgreement(agreement: Agreement): Promise<void> {
     validateAgreement(agreement);
-    requireCondition(agreement.merchantId === this.account.merchantId && agreement.livemode === this.account.livemode, 'AGREEMENT_ACCOUNT_MISMATCH');
+    requireCondition(agreement.accountKey === this.account.accountKey &&
+      agreement.merchantId === this.account.merchantId && agreement.livemode === this.account.livemode, 'AGREEMENT_ACCOUNT_MISMATCH');
     await this.db.transaction(async db => {
       await db.query('INSERT INTO pulseaw_southbill.agreements (merchant_id,livemode,reference,payment_id,document,document_hash) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING',
         [...this.params(), agreement.reference, agreement.expectedPaymentId, JSON.stringify(agreement), digest(agreement)]);

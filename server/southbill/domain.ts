@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { engagements } from '../../app/engagements.ts';
 
-export type Account = Readonly<{ merchantId: string; livemode: boolean }>;
+// accountKey is our ledger namespace; merchantId is an optional, verified provider ID.
+export type Account = Readonly<{ accountKey: string; livemode: boolean; merchantId?: string }>;
 export type Service = Readonly<{
   serviceId: string; name: string; description: string; currency: 'usd';
   unitAmountCents: number; productId: string; priceId: string;
@@ -37,7 +38,16 @@ export const requireCondition = (condition: unknown, code: string): void => {
 export const isId = (value: unknown): value is string => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,160}$/.test(value);
 export const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
 export function assertAccount(account: Account): void {
-  requireCondition(isId(account.merchantId) && typeof account.livemode === 'boolean', 'ACCOUNT_CONFIGURATION_REQUIRED');
+  requireCondition(isId(account.accountKey) && typeof account.livemode === 'boolean' &&
+    (account.merchantId === undefined || isId(account.merchantId)), 'ACCOUNT_CONFIGURATION_REQUIRED');
+}
+export function verifyProviderMerchant(value: unknown, account: Account, mismatchCode: string): void {
+  // Documented sample merchant envelopes omit this field. Never confuse an explicit ID
+  // with our local namespace or accept it without a verified provider binding.
+  if (value === undefined) return;
+  requireCondition(isId(value), mismatchCode);
+  requireCondition(account.merchantId !== undefined, 'PROVIDER_MERCHANT_ID_UNVERIFIED');
+  requireCondition(value === account.merchantId, mismatchCode);
 }
 export function eligibleCatalog(ids: readonly string[]): readonly Service[] {
   requireCondition(Array.isArray(ids) && ids.length > 0 && ids.length <= catalog.length, 'APPROVED_SCOPE_REQUIRED');
@@ -96,7 +106,7 @@ export function planInvoice(payment: Payment, agreement: Agreement) {
   validateAgreement(agreement);
   requireCondition(payment.id === agreement.expectedPaymentId && payment.reference === agreement.reference, 'PAYMENT_BINDING_MISMATCH');
   requireCondition(payment.livemode === agreement.livemode, 'PAYMENT_MODE_MISMATCH');
-  requireCondition(!payment.merchant_id || payment.merchant_id === agreement.merchantId, 'PAYMENT_ACCOUNT_MISMATCH');
+  verifyProviderMerchant(payment.merchant_id, agreement, 'PAYMENT_ACCOUNT_MISMATCH');
   requireCondition(payment.status === 'succeeded', 'PAYMENT_NOT_CAPTURED');
   requireCondition(payment.amount === agreement.amountCents && payment.currency.toLowerCase() === 'usd', 'PAYMENT_TOTAL_MISMATCH');
   requireCondition(payment.customer_email?.trim().toLowerCase() === agreement.customerEmail.trim().toLowerCase(), 'PAYMENT_CUSTOMER_MISMATCH');

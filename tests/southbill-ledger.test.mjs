@@ -11,7 +11,7 @@ import { processNext } from '../server/southbill/worker.ts';
 import { catalogVersion, SouthbillError } from '../server/southbill/domain.ts';
 
 let database, directory, db;
-const account={merchantId:'merchant_pulseaw',livemode:true};
+const account={accountKey:'pulseaw',merchantId:'merchant_pulseaw',livemode:true};
 const secret='whsec_only_for_synthetic_tests';
 const schema=await readFile(new URL('../server/southbill/schema.sql',import.meta.url),'utf8');
 const wrap=pg=>({
@@ -87,7 +87,7 @@ test('lease is exclusive, expired leases recover, stale workers cannot commit',a
   assert.equal((await rows('events'))[0].outcome_code,'RECOVERED');
 });
 test('same event ID in another account has independent storage and cannot access agreements',async()=>{
-  const one=new Ledger(db,account),two=new Ledger(db,{merchantId:'merchant_other',livemode:true});
+  const one=new Ledger(db,account),two=new Ledger(db,{accountKey:'other_company',merchantId:'merchant_other',livemode:true});
   await one.enqueue(event());await two.enqueue(event());
   await one.registerAgreement(agreement());
   assert.equal(await two.agreement('cs_1'),null);
@@ -201,4 +201,37 @@ test('provider amount mismatch cannot update a frozen payment record',async()=>{
   assert.equal((await rows('payment_records'))[0].amount_cents,490000);
   assert.equal((await rows('invoice_plans')).length,1);
   assert.equal((await rows('events')).find(x=>x.event_id==='evt_changed').outcome_code,'PAYMENT_IMMUTABLE_TOTAL_MISMATCH');
+});
+
+test('signed documented ping is durable without provider ID; local namespace is never provider identity',async()=>{
+  const local=new Ledger(db,{accountKey:'pulseaw',livemode:true});
+  const payload=event('evt_ping','ping.test');
+  assert.equal((await receiveWebhook(request(payload),local,[secret])).status,200);
+  await processNext(local,{get:async()=>{throw Error('A ping must not access payment APIs');}});
+  assert.equal((await rows('events'))[0].outcome_code,'SIGNED_PING_RECEIVED');
+  const forged={...event('evt_forged'),merchant_id:'pulseaw'};
+  const rejected=await receiveWebhook(request(forged),local,[secret]);
+  assert.equal(rejected.status,400);
+  assert.deepEqual(await rejected.json(),{error:'PROVIDER_MERCHANT_ID_UNVERIFIED'});
+  assert.equal((await rows('events')).length,1);
+});
+
+test('canonical payment with unexpected provider identity cannot be reconciled',async()=>{
+  const localAccount={accountKey:'pulseaw',livemode:true};
+  const local=new Ledger(db,localAccount),payload=event('evt_explicit_provider');
+  const document=agreement();delete document.merchantId;
+  await local.registerAgreement(document);
+  await local.enqueue(payload);
+  await processNext(local,client([payload],payment({merchant_id:'merchant_unverified'})));
+  assert.equal((await rows('events'))[0].outcome_code,'PROVIDER_MERCHANT_ID_UNVERIFIED');
+  assert.equal((await rows('payment_records')).length,0);
+  assert.equal((await rows('invoice_plans')).length,0);
+});
+
+test('an optional verified provider ID does not strand an already received ping',async()=>{
+  const local=new Ledger(db,{accountKey:'pulseaw',livemode:true});
+  await local.enqueue(event('evt_before_binding','ping.test'));
+  const bound=new Ledger(db,account);
+  await processNext(bound,{get:async()=>{throw Error('No API needed for ping');}});
+  assert.equal((await rows('events'))[0].outcome_code,'SIGNED_PING_RECEIVED');
 });

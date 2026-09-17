@@ -7,7 +7,7 @@ import { SouthbillClient } from '../server/southbill/client.ts';
 
 const all = catalog.map(x=>x.serviceId);
 const agreement = () => ({
-  merchantId:'merchant_pulseaw',livemode:true,reference:'order_1',expectedPaymentId:'cs_1',
+  accountKey:'pulseaw',merchantId:'merchant_pulseaw',livemode:true,reference:'order_1',expectedPaymentId:'cs_1',
   approvedServiceIds:['acquisition'],catalogVersion,amountCents:490000,currency:'usd',
   customerName:'Synthetic Customer',customerEmail:'buyer@example.invalid',
   scopeReference:'contract_demo_1',consentReference:'consent_demo_1',verifiedBy:'operator_demo',

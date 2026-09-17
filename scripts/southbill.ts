@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { catalog, catalogVersion, supportedAmounts, validateAgreement, isId, SouthbillError } from '../server/southbill/domain.ts';
 import type { Agreement } from '../server/southbill/domain.ts';
 import { connectDatabase } from '../server/southbill/database.ts';
+import { pulseawAccount } from '../server/southbill/account.ts';
 import { Ledger } from '../server/southbill/ledger.ts';
 import { SouthbillClient } from '../server/southbill/client.ts';
 import { processNext } from '../server/southbill/worker.ts';
@@ -23,12 +24,11 @@ try {
     }
     console.log('Six SouthBill products and prices verified; no writes.');
   } else if (['status','migrate','register-agreement','process','requeue'].includes(command)) {
-    if (!isId(process.env.SOUTHBILL_MERCHANT_ID) || process.env.SOUTHBILL_MODE !== 'live')
-      throw new SouthbillError('CONFIRMED_MERCHANT_AND_MODE_REQUIRED');
+    const account = pulseawAccount(process.env);
     if (!process.env.SOUTHBILL_DATABASE_URL) throw new SouthbillError('PULSEAW_DATABASE_REQUIRED');
     const db = connectDatabase(process.env.SOUTHBILL_DATABASE_URL);
     try {
-      const ledger = new Ledger(db,{merchantId:process.env.SOUTHBILL_MERCHANT_ID!,livemode:true});
+      const ledger = new Ledger(db, account);
       if (command === 'migrate') {
         if (process.argv[3] !== '--apply') throw new SouthbillError('USE_MIGRATE_APPLY_AFTER_VERIFYING_PULSEAW_DATABASE');
         await db.transaction(async connection => { await connection.query(await readFile(new URL('../server/southbill/schema.sql',import.meta.url),'utf8')); });
