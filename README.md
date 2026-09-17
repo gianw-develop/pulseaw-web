@@ -1,3 +1,7 @@
+# PulseAW
+
+SouthBill integration: [implementation and activation status](docs/southbill/README.md). The six products are verified; payment-first invoicing remains gated pending a supported original-payment association.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
