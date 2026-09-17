@@ -1,6 +1,6 @@
 # PulseAW / SouthBill integration
 
-Status: implemented and locally tested; NOT activated for live payment or invoice fulfillment.
+Status: implemented and tested; Supabase schema and Vercel server configuration provisioned. Financial fulfillment and the live webhook receiver remain disabled pending the SouthBill contract and signing secret.
 
 The approved scope preserves PulseAW's six existing services and implements the groundwork for:
 open amount -> confirmed payment -> exact authorized service allocation -> detailed invoice.
@@ -18,6 +18,7 @@ The existing website and `stripe-automation` are not migrated or modified.
 - A local draft invoice payload containing the actual services, original payment reference and exact total.
 - `POST /api/internal/southbill/process`: authenticated, bounded queue worker for recovery.
 - Operator commands, a private schema migration and tests using a real embedded PostgreSQL engine.
+- Authenticated POST /api/internal/southbill/health verifies the deployed database connection without processing an event.
 
 No method creates an invoice, opens another collection attempt, uses mark_paid or processes a charge.
 Original-payment attachment and paid-document delivery require a verified SouthBill implementation.
@@ -77,8 +78,14 @@ the database provider's verified settings. No TLS certificate checks are disable
 
 ## Supabase connection
 
-The owner confirmed Supabase as PulseAW's database provider on 2026-09-17. The exact project
-reference and access still need verification; no Supabase migration has been applied.
+The owner confirmed project rzyvatbujushojhryohf (info@pulseaw.com's Project) on 2026-09-17.
+The private schema is installed. The retired profiles/loans/transactions schema and its signup trigger
+were removed after explicit cleanup authorization, a private backup and an offline restoration check.
+Supabase Auth accounts were preserved. Backup files remain in ignored local storage.
+
+The runtime role pulseaw_southbill_runtime has SELECT/INSERT/UPDATE on the four SouthBill tables and
+USAGE on their private schema. It cannot access the auth schema. A real connection using this role and
+full TLS verification succeeded.
 
 For the Vercel runtime, obtain the shared transaction-pooler connection from the confirmed project's
 Connect dialog. Copy its actual host and role/project username; do not infer the pooler host from a region.
@@ -89,8 +96,9 @@ service-role API key is not a PostgreSQL connection string. Leave this private s
 Run the migration over a direct connection, or a session-pooler connection when the local network
 cannot reach the direct endpoint. Verify the project reference and existing schema before applying it.
 The adapter uses parameterized queries without named prepared statements, and transactions retain one
-checked-out client. Configure and verify TLS against the actual project connection settings; certificate
-verification must remain enabled. Review connection limits for the selected Supabase and Vercel plans.
+checked-out client. The adapter requires verified TLS and uses one pooled connection per instance. Set
+SOUTHBILL_DATABASE_CA to the official Supabase root CA PEM (literal or escaped newlines). Conflicting
+URL SSL options and verification downgrades are rejected. Review connection limits for the hosting plans.
 
 Source: [Supabase database connection guide](https://supabase.com/docs/guides/database/connecting-to-postgres)
 and [database roles](https://supabase.com/docs/guides/database/postgres/roles).
@@ -103,8 +111,18 @@ and [database roles](https://supabase.com/docs/guides/database/postgres/roles).
 - New webhook path after deployment: /api/webhooks/southbill.
 - No new Vercel project, DNS change, Stripe key change or existing-link deactivation.
 
-Use isolated project-local Vercel authorization (`.vercel-auth`, ignored). Verify account, project ID
-and database target before provisioning. Do not rely on another company's/global Vercel login.
+Use the isolated CLI sessions already authorized for this workspace. The credentials and npm caches
+are ignored by Git. Vercel identity business-aw was verified against the selected project.
+
+```powershell
+npx --yes --cache .southbill/npm-cache-vercel vercel@59.20.0 --global-config .vercel-auth --scope info-93809322s-projects projects inspect pulseaw-web-site
+$env:SUPABASE_HOME = Join-Path (Get-Location).Path '.southbill/supabase-auth'
+$env:SUPABASE_NO_KEYRING = '1'
+npx --yes --cache .southbill/npm-cache-supabase supabase@2.117.0 --output json projects list
+```
+
+Do not omit the isolated configuration when running later commands. Set the Vercel project explicitly
+to prj_A8bpbNn1kNoFeDj4C6mYDr27HVwe and the Supabase project explicitly to rzyvatbujushojhryohf.
 
 Set SOUTHBILL_ENABLED=false until merchant, database and signing secret are verified.
 When enabled, this version ONLY observes/reconciles and creates LOCAL invoice plans. It never fulfills
@@ -137,7 +155,7 @@ See [provider assessment](provider-assessment.md) and [provider questions](suppo
 ## Verification performed
 
 - Skill toolkit: 20 offline tests passed.
-- PulseAW integration: 28 tests passed, including persistent PostgreSQL close/reopen, exclusive leases, duplicate events, invalid signatures and refund ordering. These use synthetic provider responses.
+- PulseAW integration: 31 tests passed, including persistent PostgreSQL close/reopen, exclusive leases, duplicate events, invalid signatures and refund ordering. These use synthetic provider responses.
 - New merchant read adapter: all six live product/price pairs verified with no writes.
 - Next.js production build and ESLint pass. Next.js upgraded from 16.2.9 to 16.3.5; npm audit reports zero vulnerabilities in the root dependency tree.
 - HTTP smoke check: homepage 200, disabled webhook 503, unauthorized worker 401.

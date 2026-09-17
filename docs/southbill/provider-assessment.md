@@ -6,9 +6,12 @@
 - GET /invoices?limit=1 and GET /payments?limit=1 returned HTTP 200, empty lists.
 - GET /events?type=product.created&limit=1 returned HTTP 200, no authentic event fixture.
 - Earlier incomplete POST /invoices calls returned field validation errors. No invoice was created.
-- API key remains in the parent workspace's ignored .env.local; it has not been committed or copied into artifacts.
+- API key is stored only in ignored local environment files and the confirmed Vercel project's secret variables.
 - The user selected the six-service catalog and open-amount/payment-first flow.
 - The user identified the existing Vercel project pulseaw-web-site in info-93809322s-projects.
+
+- Supabase project rzyvatbujushojhryohf was explicitly selected by the owner. Its private SouthBill schema is installed, and the least-privilege runtime connection passed full TLS verification.
+- The six Vercel server variables are configured for production and the isolated integration preview branch; the receiver remains disabled.
 
 ## Published contracts reviewed
 
@@ -42,7 +45,7 @@ eligibility remain unverified. Its presence in a catalog is not an enabled payme
 
 - Confirmed merchant ID, partner/rail and account-specific capabilities.
 - Dedicated webhook endpoint/signing secret and an authentic signed delivery.
-- Confirmed PulseAW database/project and isolated deployment authorization.
+- SouthBill account identity still needs verification; Supabase project and isolated Vercel authorization are now confirmed.
 - Permanent open-amount link contract and trusted buyer/scope mapping.
 - Original-payment association, generic-invoice reconciliation and paid-document delivery.
 - Recovery worker scheduling and provider-level validation.

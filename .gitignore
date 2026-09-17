@@ -46,3 +46,6 @@ next-env.d.ts
 .apexstart-southbill/
 .vercel-auth/
 *.tsbuildinfo
+
+# Supabase CLI local metadata and temporary connection state
+supabase/.temp/

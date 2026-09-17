@@ -2,14 +2,23 @@ import pg from 'pg';
 import type { Database, Query } from './ledger.ts';
 import { requireCondition } from './domain.ts';
 const { Pool } = pg;
-export function connectDatabase(url: string): Database & { close(): Promise<void> } {
+/** Explicit TLS configuration prevents connection-string options from weakening verification. */
+export function databaseOptions(url: string, ca = process.env.SOUTHBILL_DATABASE_CA): pg.PoolConfig {
   const parsed = new URL(url);
   requireCondition(['postgres:','postgresql:'].includes(parsed.protocol), 'POSTGRES_URL_REQUIRED');
-  const pool = new Pool({
-    connectionString: url, max: 3, connectionTimeoutMillis: 8000,
+  const mode = parsed.searchParams.get('sslmode');
+  requireCondition(mode === null || mode === 'verify-full', 'DATABASE_TLS_VERIFICATION_REQUIRED');
+  for (const key of parsed.searchParams.keys())
+    requireCondition(key === 'sslmode' || (!key.toLowerCase().startsWith('ssl') && key.toLowerCase() !== 'uselibpqcompat'), 'DATABASE_TLS_OPTIONS_CONFLICT');
+  parsed.searchParams.delete('sslmode');
+  return {
+    connectionString: parsed.toString(), max: 1, connectionTimeoutMillis: 8000,
     idleTimeoutMillis: 10000, statement_timeout: 15000,
-    // TLS follows the explicit connection URL; never disable certificate validation.
-  });
+    ssl: { rejectUnauthorized: true, ...(ca ? { ca: ca.replaceAll('\\n','\n') } : {}) },
+  };
+}
+export function connectDatabase(url: string): Database & { close(): Promise<void> } {
+  const pool = new Pool(databaseOptions(url));
   return {
     async query<T extends Record<string, unknown>>(sql: string, params: unknown[] = []) {
       return pool.query<T>(sql, params);
