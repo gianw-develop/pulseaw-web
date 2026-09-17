@@ -75,6 +75,26 @@ The migration creates only the `pulseaw_southbill` private schema. Do not expose
 Data API; use a database role restricted to this schema. Configure TLS in the connection URL, using
 the database provider's verified settings. No TLS certificate checks are disabled by this code.
 
+## Supabase connection
+
+The owner confirmed Supabase as PulseAW's database provider on 2026-09-17. The exact project
+reference and access still need verification; no Supabase migration has been applied.
+
+For the Vercel runtime, obtain the shared transaction-pooler connection from the confirmed project's
+Connect dialog. Copy its actual host and role/project username; do not infer the pooler host from a region.
+Use a dedicated server role restricted to the private `pulseaw_southbill` schema and store the complete
+PostgreSQL URL only in `SOUTHBILL_DATABASE_URL`. A Supabase project HTTPS URL, publishable key or
+service-role API key is not a PostgreSQL connection string. Leave this private schema out of the Data API.
+
+Run the migration over a direct connection, or a session-pooler connection when the local network
+cannot reach the direct endpoint. Verify the project reference and existing schema before applying it.
+The adapter uses parameterized queries without named prepared statements, and transactions retain one
+checked-out client. Configure and verify TLS against the actual project connection settings; certificate
+verification must remain enabled. Review connection limits for the selected Supabase and Vercel plans.
+
+Source: [Supabase database connection guide](https://supabase.com/docs/guides/database/connecting-to-postgres)
+and [database roles](https://supabase.com/docs/guides/database/postgres/roles).
+
 ## Intended deployment
 
 - Repository: gianw-develop/pulseaw-web.
