@@ -40,3 +40,12 @@ stripe-automation/node_modules/
 
 # Generated Next.js TypeScript references
 next-env.d.ts
+
+# Isolated SouthBill runtime and project authorization
+.southbill/
+.apexstart-southbill/
+.vercel-auth/
+*.tsbuildinfo
+
+# Supabase CLI local metadata and temporary connection state
+supabase/.temp/
