@@ -235,3 +235,18 @@ test('an optional verified provider ID does not strand an already received ping'
   await processNext(bound,{get:async()=>{throw Error('No API needed for ping');}});
   assert.equal((await rows('events'))[0].outcome_code,'SIGNED_PING_RECEIVED');
 });
+
+test('two buyers on one permanent link retain distinct immutable orders and invoice plans',async()=>{
+ const ledger=new Ledger(db,account);
+ for(const suffix of ['one','two']){
+  const doc={...agreement(),reference:'order_'+suffix,expectedPaymentId:'cs_'+suffix,sourceReference:'shared_link_reference',customerEmail:suffix+'@example.invalid'};
+  await ledger.registerAgreement(doc);
+  const evt={...event('evt_'+suffix),data:{object:{id:'cs_'+suffix,object:'checkout.session'}}};
+  await ledger.enqueue(evt);
+  await processNext(ledger,{get:async kind=>kind==='events'?evt:payment({id:'cs_'+suffix,reference:'shared_link_reference',customer_email:doc.customerEmail})});
+ }
+ const plans=(await db.query('SELECT payment_id,plan FROM pulseaw_southbill.invoice_plans ORDER BY payment_id')).rows;
+ assert.equal(plans.length,2);
+ assert.deepEqual(plans.map(x=>x.plan.draftPayload.metadata.order_reference),['order_one','order_two']);
+ assert.deepEqual(plans.map(x=>x.payment_id),['cs_one','cs_two']);
+});

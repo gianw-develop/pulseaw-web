@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://www.pulseaw.com"),
   title: "PulseAW | Premium Marketing for New Entrepreneurs",
   description:
-    "Launch your next chapter with PulseAW. Six focused marketing engagements, from market strategy to integrated acquisition systems. Projects from $1,500 to $8,000.",
+    "Launch your next chapter with PulseAW. Individual marketing services from $5 to $200, and focused engagements from $1,500 to $8,000.",
   openGraph: {
     title: "Your ambition. Our next move. | PulseAW",
     description:

@@ -1,3 +1,5 @@
+import { internalCatalogHealth } from '../../../../../server/southbill/internal-catalog.ts';
+import { SouthbillError } from '../../../../../server/southbill/invariants.ts';
 import { workerAuthorized } from '../../../../../server/southbill/runtime.ts';
 import { connectDatabase } from '../../../../../server/southbill/database.ts';
 export const runtime = 'nodejs';
@@ -11,10 +13,11 @@ export async function POST(request: Request) {
   let db: ReturnType<typeof connectDatabase> | undefined;
   try {
     db = connectDatabase(url);
-    const result = await db.query("SELECT count(*)::integer AS count FROM information_schema.tables WHERE table_schema='pulseaw_southbill' AND table_name IN ('agreements','events','payment_records','invoice_plans')");
-    if (result.rows[0]?.count !== 4) throw new Error('SCHEMA_INCOMPLETE');
-    return Response.json({database:'connected',schema:'ready',receiverEnabled:process.env.SOUTHBILL_ENABLED==='true'}, {headers:{'Cache-Control':'no-store'}});
-  } catch {
+    const result = await db.query("SELECT count(*)::integer AS count FROM information_schema.tables WHERE table_schema='pulseaw_southbill' AND table_name IN ('agreements','events','payment_records','invoice_plans','invoice_jobs')");
+    if (result.rows[0]?.count !== 5) throw new Error('SCHEMA_INCOMPLETE');
+    return Response.json({database:'connected',schema:'ready',receiverEnabled:process.env.SOUTHBILL_ENABLED==='true',invoiceMode:process.env.SOUTHBILL_INVOICE_MODE??'disabled',privateCatalog:internalCatalogHealth()}, {headers:{'Cache-Control':'no-store'}});
+  } catch (error) {
+    if(error instanceof SouthbillError) return Response.json({error:'PRIVATE_CATALOG_UNAVAILABLE'},{status:503,headers:{'Cache-Control':'no-store'}});
     return Response.json({error:'DATABASE_UNAVAILABLE'}, {status:503});
   } finally { await db?.close(); }
 }

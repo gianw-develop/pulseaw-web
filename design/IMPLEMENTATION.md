@@ -33,3 +33,13 @@ Los enlaces antiguos de compra se retiran de la portada. No se alteran los proye
 ## Publicación
 Repositorio existente: gianw-develop/pulseaw-web, rama main. Despliegue mediante su conexión existente con Vercel; sin crear proyectos nuevos. Validar dominio público tras el push. La versión previa al cambio es fcb5ab7c1133002c6f96478272cd06bea97ad5d9.
 
+
+## Public service listing (2026-09-22)
+
+Added the owner-approved twelve individual services on `/services`, reusing the existing
+secondary-page header/footer, fonts, colors and responsive spacing. The home page gains
+a navigation/footer link; the approved hero and engagement module remain unchanged.
+The listing uses a single column of service rows on mobile and a price/action column
+from the existing small-screen breakpoint. Enquiries use the existing mailto flow.
+Private invoice services are never rendered. Build/HTML/link checks passed; visual
+Chrome QA could not run because browser automation fails at Windows sandbox startup.

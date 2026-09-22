@@ -1,4 +1,7 @@
-import { createHash } from 'node:crypto';
+import { digest, requireCondition, isId, SouthbillError } from './invariants.ts';
+export { digest, requireCondition, isId, isRecord, SouthbillError } from './invariants.ts';
+import { isInternalVersion, resolveInternalCatalog } from './internal-catalog.ts';
+import { allocateInternal } from './internal-allocation.ts';
 import { engagements } from '../../app/engagements.ts';
 import { individualServices } from '../../app/individual-services.ts';
 import { individualProviderIds } from './individual-provider-ids.ts';
@@ -7,8 +10,9 @@ import { individualProviderIds } from './individual-provider-ids.ts';
 export type Account = Readonly<{ accountKey: string; livemode: boolean; merchantId?: string }>;
 export type Service = Readonly<{
   serviceId: string; name: string; description: string; currency: 'usd';
-  unitAmountCents: number; productId: string; priceId: string;
+  unitAmountCents: number; productId?: string; priceId?: string;
 }>;
+export type PublicService = Service & { productId:string; priceId:string };
 export type Line = Service & { quantity: 1 };
 // IDs verified in PulseAW's SouthBill account; never copied from the legacy Stripe integration.
 const providerIds: Record<string, readonly [string, string]> = {
@@ -19,32 +23,17 @@ const providerIds: Record<string, readonly [string, string]> = {
   launch: ['prod_VGWpER8X3SxYbI', 'price_1UFzlqKZ1AwW6yFkZbeJ2alF'],
   founder: ['prod_VGWpKXP9avVKGf', 'price_1UFzltKZ1AwW6yFkTEYvA9Cu'],
 };
-export const legacyCatalog: readonly Service[] = Object.freeze(engagements.map(item => Object.freeze({
+export const legacyCatalog: readonly PublicService[] = Object.freeze(engagements.map(item => Object.freeze({
   serviceId: item.id, name: item.name, description: item.detail, currency: 'usd' as const,
   unitAmountCents: item.price * 100, productId: providerIds[item.id][0], priceId: providerIds[item.id][1],
 })));
-export const individualCatalog: readonly Service[] = Object.freeze(individualServices.map(item => Object.freeze({
+export const individualCatalog: readonly PublicService[] = Object.freeze(individualServices.map(item => Object.freeze({
   serviceId:item.id,name:item.name,description:item.description,currency:'usd' as const,
   unitAmountCents:item.price*100,productId:individualProviderIds[item.id][0],priceId:individualProviderIds[item.id][1],
 })));
-export const catalog: readonly Service[] = Object.freeze([...legacyCatalog,...individualCatalog]);
-function canonical(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonical);
-  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).sort(([a],[b]) => a < b ? -1 : a > b ? 1 : 0).map(([key,item]) => [key,canonical(item)]));
-  return value;
-}
-export const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
+export const catalog: readonly PublicService[] = Object.freeze([...legacyCatalog,...individualCatalog]);
 export const legacyCatalogVersion = 'pulseaw-six-' + digest(legacyCatalog).slice(0,16);
 export const catalogVersion = 'pulseaw-catalog-' + digest(catalog).slice(0,16);
-export class SouthbillError extends Error {
-  code: string;
-  constructor(code: string) { super(code); this.name = 'SouthbillError'; this.code = code; }
-}
-export const requireCondition = (condition: unknown, code: string): void => {
-  if (!condition) throw new SouthbillError(code);
-};
-export const isId = (value: unknown): value is string => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,160}$/.test(value);
-export const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
 export function assertAccount(account: Account): void {
   requireCondition(isId(account.accountKey) && typeof account.livemode === 'boolean' &&
     (account.merchantId === undefined || isId(account.merchantId)), 'ACCOUNT_CONFIGURATION_REQUIRED');
@@ -58,6 +47,7 @@ export function verifyProviderMerchant(value: unknown, account: Account, mismatc
   requireCondition(value === account.merchantId, mismatchCode);
 }
 export function resolveCatalog(version=catalogVersion):readonly Service[] {
+  if (isInternalVersion(version)) return resolveInternalCatalog(version).services;
   requireCondition(version===catalogVersion || version===legacyCatalogVersion,'CATALOG_VERSION_MISMATCH');
   return version===legacyCatalogVersion ? legacyCatalog:catalog;
 }
@@ -72,6 +62,7 @@ export function eligibleCatalog(ids: readonly string[],version=catalogVersion): 
 export function allocate(amountCents: number, approvedServiceIds: readonly string[],version=catalogVersion): Line[] | null {
   requireCondition(Number.isSafeInteger(amountCents) && amountCents > 0 && amountCents % 100 === 0, 'WHOLE_USD_AMOUNT_REQUIRED');
   const services = eligibleCatalog(approvedServiceIds,version);
+  if (isInternalVersion(version)) return allocateInternal(amountCents, services);
   const best=new Map<number,Line[]>([[0,[]]]);
   const key=(lines:Line[])=>lines.map(x=>x.serviceId).join('|');
   for(const service of services) for(const [sum,lines] of [...best.entries()]) {
@@ -82,12 +73,15 @@ export function allocate(amountCents: number, approvedServiceIds: readonly strin
   return best.get(amountCents)??null;
 }
 export function supportedAmounts(approvedServiceIds: readonly string[],version=catalogVersion): number[] {
-  const services=eligibleCatalog(approvedServiceIds,version);const amounts=new Set<number>([0]);
+  const services=eligibleCatalog(approvedServiceIds,version);
+  if (isInternalVersion(version)) return Array.from({length:195},(_,i)=>(i+6)*100).filter(amount=>allocateInternal(amount,services)!==null);
+  const amounts=new Set<number>([0]);
   for(const item of services)for(const amount of [...amounts])amounts.add(amount+item.unitAmountCents);
   amounts.delete(0);return [...amounts].sort((a,b)=>a-b);
 }
 export type Agreement = Account & {
-  reference: string; expectedPaymentId: string; approvedServiceIds: string[];
+  /** Unique local order reference; sourceReference may identify a shared provider link. */
+  reference: string; sourceReference?: string; expectedPaymentId: string; approvedServiceIds: string[];
   catalogVersion: string; amountCents: number; currency: 'usd';
   customerName: string; customerEmail: string;
   scopeReference: string; consentReference: string; verifiedBy: string;
@@ -98,8 +92,10 @@ export type Agreement = Account & {
 export function validateAgreement(agreement: Agreement): void {
   assertAccount(agreement);
   requireCondition(isId(agreement.reference) && isId(agreement.expectedPaymentId), 'PAYMENT_BINDING_REQUIRED');
+  if(agreement.sourceReference!==undefined) requireCondition(isId(agreement.sourceReference),'PROVIDER_REFERENCE_REQUIRED');
   requireCondition(typeof agreement.catalogVersion === 'string', 'CATALOG_VERSION_MISMATCH');
   resolveCatalog(agreement.catalogVersion);
+  if (isInternalVersion(agreement.catalogVersion)) requireCondition(agreement.accountKey==='pulseaw','INTERNAL_CATALOG_IDENTITY_MISMATCH');
   requireCondition(agreement.currency === 'usd', 'USD_REQUIRED');
   for (const value of [agreement.scopeReference, agreement.consentReference, agreement.verifiedBy])
     requireCondition(typeof value === 'string' && value.trim().length >= 3 && value.length <= 500, 'VERIFIED_EVIDENCE_REQUIRED');
@@ -117,7 +113,7 @@ export type Payment = {
 /** Local invoice plan only; never a second payable invoice for an already-paid order. */
 export function planInvoice(payment: Payment, agreement: Agreement) {
   validateAgreement(agreement);
-  requireCondition(payment.id === agreement.expectedPaymentId && payment.reference === agreement.reference, 'PAYMENT_BINDING_MISMATCH');
+  requireCondition(payment.id === agreement.expectedPaymentId && payment.reference === (agreement.sourceReference??agreement.reference), 'PAYMENT_BINDING_MISMATCH');
   requireCondition(payment.livemode === agreement.livemode, 'PAYMENT_MODE_MISMATCH');
   verifyProviderMerchant(payment.merchant_id, agreement, 'PAYMENT_ACCOUNT_MISMATCH');
   requireCondition(payment.status === 'succeeded', 'PAYMENT_NOT_CAPTURED');

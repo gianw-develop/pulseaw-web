@@ -146,6 +146,7 @@ export default function Home() {
           </Link>
           <nav className="desktop-nav" aria-label="Main navigation">
             <a href="#services">Expertise</a>
+            <Link href="/services">Services & pricing</Link>
             <a href="#approach">Our approach</a>
             <a href="#about">About</a>
           </nav>
@@ -171,6 +172,7 @@ export default function Home() {
             <a href="#services" onClick={() => setMenuOpen(false)}>
               Expertise
             </a>
+            <Link href="/services" onClick={() => setMenuOpen(false)}>Services & pricing</Link>
             <a href="#approach" onClick={() => setMenuOpen(false)}>
               Our approach
             </a>
@@ -622,7 +624,8 @@ export default function Home() {
             />
           </Link>
           <p>© {new Date().getFullYear()} PulseAW LLC</p>
-          <nav aria-label="Legal">
+          <nav aria-label="Footer">
+            <Link href="/services">Services & pricing</Link>
             <Link href="/imprint">Imprint</Link>
             <Link href="/terms-of-service">Terms</Link>
             <Link href="/privacy-policy">Privacy</Link>
