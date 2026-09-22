@@ -30,11 +30,10 @@ Primary pages reviewed 2026-09-22; saved copies are in ignored local research st
 - [Event types](https://www.southbill.com/docs/webhooks/events)
 - [Sandbox overview](https://www.southbill.com/docs/sandbox/overview)
 
-Reusable payment links collect name, email, phone and billing address and cannot disable the latter
-two fields. PulseAW therefore uses the documented Checkout Sessions API through /pay: the server
-submits the agreed amount, name and email and redirects to the verified hosted checkout URL. The
-customer page and the Live hosted checkout omit phone, billing address and order-reference inputs.
-The former reusable payment link is inactive.
+Reusable payment links now have a documented Merchant API. Custom pricing plus allow_custom_amount
+supports minimum/maximum amounts. Name, email, phone and billing address are collected; an optional
+buyer note does not itself establish the contracted scope. A shared link reference is not a unique
+order reference for every buyer. The verified Live link is active for whole-dollar totals from USD 6 through 200.
 
 The current Sandbox documentation describes isolated merchant accounts and test keys; this supersedes
 the earlier Live-only assessment. No Sandbox account or key was created in this task.
@@ -55,4 +54,4 @@ event and verify its delivery; never create a customer or charge merely to manuf
 
 Automatic invoice emission is enabled for reviewed agreements through record_prior_payment. Local tests and production health prove the deployed controls; the first genuine customer payment will provide account-specific provider settlement evidence.
 
-The latest Live read before activation returned zero payments and zero invoices. One USD 6 Live Checkout Session was opened only for browser verification and immediately expired; no payment, customer charge or invoice was created.
+The latest Live read returned zero payments and zero invoices. One active custom-amount payment link exists. No fictitious Live payment, customer or invoice was created to manufacture settlement evidence.

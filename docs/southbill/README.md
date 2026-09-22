@@ -189,12 +189,12 @@ See [provider assessment](provider-assessment.md) and [provider questions](suppo
 ## Verification performed
 
 - Skill toolkit: 20 offline tests passed.
-- PulseAW integration: 74 tests passed, including Checkout Session validation, persistent PostgreSQL close/reopen, exclusive leases, duplicate events, invalid signatures and refund ordering.
+- PulseAW integration: 69 tests passed, including persistent PostgreSQL close/reopen, exclusive leases, duplicate events, invalid signatures and refund ordering. These use synthetic provider responses.
 - Merchant read adapter: all 18 Live product/price pairs verified. Twelve approved products were provisioned in this account; no payment was made.
 - Next.js production build and ESLint pass. Next.js upgraded from 16.2.9 to 16.3.5; npm audit reports zero vulnerabilities in the root dependency tree.
 - Production HTTP checks: homepage 200; authenticated database health 200, receiver enabled; unsigned/tampered webhook 400; wrong-mode event 400. A locally signed ping was durably recorded, and a duplicate returned 200 without a second event.
 - Supabase recovery dispatch reached the production worker and processed a labeled local ping fixture. Cron jobs are enabled; these are local transport/recovery checks, not provider payment tests.
-- No real charge or provider invoice was created during installation. One USD 6 Live Checkout Session was opened for browser verification and immediately expired without payment.
+- No real charge or provider invoice was created during installation. The active hosted payment-link page and production health endpoint return HTTP 200.
 
 ## Owner-authorized paid invoice adapter
 
@@ -223,12 +223,8 @@ reference; it must match the captured payment. It never supplies the order ident
 customer scope. Consent, scope, customer and tax evidence remain mandatory per order.
 The operator must register that actual agreement; an amount alone cannot authorize work.
 
-The customer payment entry point is https://www.pulseaw.com/pay. It creates an idempotent
-Live Checkout Session for a whole-dollar total from USD 6 through 200 after collecting only
-the buyer name and email. The retired reusable payment link is inactive. The private allocator
-still rejects cents or any amount that cannot be represented by the approved scope.
+The Live custom-amount link is active at https://payments.southbill.com/i/94D2Tv6Vi. It accepts USD 6 through 200 and tells buyers to enter whole dollars only. The private allocator rejects cents or any amount that cannot be represented by the approved scope.
 
-Validation: 74 tests, TypeScript, build and lint; 195 whole-dollar totals; private catalog
-data absent from public HTML and browser assets. A USD 6 Live Checkout Session was rendered
-in Google Chrome and confirmed to omit phone, billing address and order-reference fields, then
-expired immediately without payment.
+Validation: 69 tests, TypeScript, build and lint; 195 whole-dollar totals; private catalog
+data absent from public HTML and browser assets. Chrome automation cannot initialize
+because of a Windows sandbox ACL error, so visual browser QA remains unverified.
