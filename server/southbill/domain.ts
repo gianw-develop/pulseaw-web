@@ -98,6 +98,7 @@ export type Agreement = Account & {
 export function validateAgreement(agreement: Agreement): void {
   assertAccount(agreement);
   requireCondition(isId(agreement.reference) && isId(agreement.expectedPaymentId), 'PAYMENT_BINDING_REQUIRED');
+  requireCondition(typeof agreement.catalogVersion === 'string', 'CATALOG_VERSION_MISMATCH');
   resolveCatalog(agreement.catalogVersion);
   requireCondition(agreement.currency === 'usd', 'USD_REQUIRED');
   for (const value of [agreement.scopeReference, agreement.consentReference, agreement.verifiedBy])

@@ -61,7 +61,7 @@ test('customer, merchant, environment, payment, contract and tax mismatches cann
     {livemode:false},{merchant_id:'other'},{customer_email:'other@example.invalid'},{reference:'other'}])
     assert.throws(()=>planInvoice({...payment(),...change},agreement()));
   for(const change of [{consentReference:''},{scopeReference:''},{verifiedBy:''},{taxReviewed:false},
-    {taxRateBps:2000},{termsAccepted:false},{workApproved:false},{catalogVersion:'old'}])
+    {taxRateBps:2000},{termsAccepted:false},{workApproved:false},{catalogVersion:'old'},{catalogVersion:undefined}])
     assert.throws(()=>validateAgreement({...agreement(),...change}));
 });
 test('signature verifier supports rotation and rejects tampering, malformed and stale deliveries',()=>{
