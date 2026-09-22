@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     if (result.rows[0]?.count !== 5) throw new Error('SCHEMA_INCOMPLETE');
     return Response.json({database:'connected',schema:'ready',receiverEnabled:process.env.SOUTHBILL_ENABLED==='true',invoiceMode:process.env.SOUTHBILL_INVOICE_MODE??'disabled',privateCatalog:internalCatalogHealth()}, {headers:{'Cache-Control':'no-store'}});
   } catch (error) {
-    if(error instanceof SouthbillError) return Response.json({error:'PRIVATE_CATALOG_UNAVAILABLE'},{status:503,headers:{'Cache-Control':'no-store'}});
+    if(error instanceof SouthbillError) return Response.json({error:'PRIVATE_CATALOG_UNAVAILABLE',reason:error.code},{status:503,headers:{'Cache-Control':'no-store'}});
     return Response.json({error:'DATABASE_UNAVAILABLE'}, {status:503});
   } finally { await db?.close(); }
 }
