@@ -1,53 +1,60 @@
-# Capability assessment — 17 September 2026
+# Capability assessment — 22 September 2026
 
-## Confirmed for this workspace/account
+## Confirmed for PulseAW
 
-- GET of all six products and their prices succeeded; exact names/descriptions/images/prices matched.
-- GET /invoices?limit=1 and GET /payments?limit=1 returned HTTP 200, empty lists.
-- GET /events?type=product.created&limit=1 returned HTTP 200, no authentic event fixture.
-- Earlier incomplete POST /invoices calls returned field validation errors. No invoice was created.
-- API key is stored only in ignored local environment files and the confirmed Vercel project's secret variables.
-- The user selected the six-service catalog and open-amount/payment-first flow.
-- The user identified the existing Vercel project pulseaw-web-site in info-93809322s-projects.
+- The owner selected the existing six-service catalog and open-amount/payment-first flow.
+- All six Live product/price pairs were read again and matched the approved catalog.
+- GET /invoices, /payments and /events returned HTTP 200 with empty lists.
+- GET /webhook_endpoints confirmed the enabled dedicated Live endpoint at
+  https://www.pulseaw.com/api/webhooks/southbill with wildcard events. The saved signing-secret suffix matches.
+- The owner confirmed Supabase project rzyvatbujushojhryohf. Its private schema and least-privilege
+  runtime connection pass full TLS verification. Vercel project pulseaw-web-site is configured and deployed.
+- The receiver is enabled. Locally signed Live-mode pings, duplicate detection, tamper rejection and
+  mode rejection were checked over production HTTP. These are not authentic provider-originated events.
+- Supabase pg_cron/pg_net recovery dispatch reached the production worker and processed a local fixture.
+- The owner reports payouts restored; this has not been independently confirmed by a payout API.
+- The owner chose Live-only configuration and declined Sandbox account/key creation. No real charge is authorized.
 
-- Supabase project rzyvatbujushojhryohf was explicitly selected by the owner. Its private SouthBill schema is installed, and the least-privilege runtime connection passed full TLS verification.
-- The six Vercel server variables are configured for production and the isolated integration preview branch; the receiver remains disabled.
+## Current published Merchant API contracts
 
-## Published contracts reviewed
+Primary pages reviewed 2026-09-22; saved copies are in ignored local research storage:
 
-- Merchant API: https://www.southbill.com/docs/api/checkout-sessions
-- Invoice operations: https://www.southbill.com/docs/api/invoices
-- Payments: https://www.southbill.com/docs/api/payments
-- Canonical event retrieval: https://www.southbill.com/docs/api/events
-- Webhook configuration/testing: https://www.southbill.com/docs/webhooks/overview
-- Raw-body signature: https://www.southbill.com/docs/webhooks/signature-verification
-- Exact event types: https://www.southbill.com/docs/webhooks/events
+- [Checkout sessions](https://www.southbill.com/docs/api/checkout-sessions)
+- [Payment links](https://www.southbill.com/docs/api/payment-links)
+- [Invoices](https://www.southbill.com/docs/api/invoices)
+- [Payments](https://www.southbill.com/docs/api/payments)
+- [Events](https://www.southbill.com/docs/api/events)
+- [Webhook endpoints](https://www.southbill.com/docs/api/webhook-endpoints)
+- [Signature verification](https://www.southbill.com/docs/webhooks/signature-verification)
+- [Event types](https://www.southbill.com/docs/webhooks/events)
+- [Sandbox overview](https://www.southbill.com/docs/sandbox/overview)
 
-The current merchant webhook overview explicitly says mode is always live, and describes ping.test
-as synthetic. It conflicts with older API-key text mentioning Test. No simulated merchant payment
-facility is established. A real payment/refund is not an authorized substitute for a simulated test.
+Reusable payment links now have a documented Merchant API. Custom pricing plus allow_custom_amount
+supports minimum/maximum amounts. Name, email, phone and billing address are collected; an optional
+buyer note does not itself establish the contracted scope. A shared link reference is not a unique
+order reference for every buyer. No permanent link has been created for the unfinished invoice flow.
 
-The invoice reference documents create/update/get/send/void/mark_paid, but not attachment of an
-already captured payment. Setting metadata is not attachment. mark_paid is out-of-band recording.
-The App API's OpenAPI and Stripe endpoints are not substitutes for the merchant contract.
+The current Sandbox documentation describes isolated merchant accounts and test keys; this supersedes
+the earlier Live-only assessment. No Sandbox account or key was created in this task.
 
-## UI evidence, not merchant proof
+The invoice API documents creation, draft updates, send, void, mark_paid and retrieval of payments
+already booked against an invoice. It still does not document attaching an existing captured payment
+to a newly created invoice. Metadata is not attachment. mark_paid records an out-of-band payment;
+/send opens collection and can email the buyer. Neither is a substitute for the requested paid invoice.
+The App API and Stripe API are separate contracts and must not be used to invent Merchant API endpoints.
 
-The published product form has Customer chooses amount with min/max/preset.
-The published invoice UI includes open/partial payment settings, and its hosted page requests an amount.
-These indicate provider UI capability; they do not establish a permanent product link, supported public
-API parameters, buyer/scope correlation, or a payment-first invoice attachment flow for PulseAW.
+The current event list no longer documents product.created/product.updated. Catalog updates are not
+accepted as proof of native webhook testing. Use a documented endpoint test or an authentic relevant
+event and verify its delivery; never create a customer or charge merely to manufacture such evidence.
 
-Cash App Pay is listed in the SouthBill method catalog for USD/US. Its account activation and PulseAW
-eligibility remain unverified. Its presence in a catalog is not an enabled payment method.
+## Still required before the requested financial workflow
 
-## Still missing
+- Confirm the actual payment partner, PulseAW's enabled methods and Cash App Pay eligibility.
+- Observe a provider-originated signed delivery and validate authentic payment/event shapes.
+- Bind each open-link payment to actual agreed services, buyer, consent evidence and reviewed tax treatment.
+- Obtain a supported original-payment association, or the owner's explicit approval of an alternative invoice flow.
+- Prove one authoritative invoice per payment and paid-document delivery without reopening collection.
+- Agree handling of unsupported amounts and cents. The six real services cannot exactly represent every amount.
 
-- Confirmed partner/rail and account-specific capabilities. A provider merchant ID is not a documented setup prerequisite; explicit IDs in authentic payloads still require a verified binding.
-- Dedicated webhook endpoint/signing secret and an authentic signed delivery.
-- SouthBill account identity still needs verification; Supabase project and isolated Vercel authorization are now confirmed.
-- Permanent open-amount link contract and trusted buyer/scope mapping.
-- Original-payment association, generic-invoice reconciliation and paid-document delivery.
-- Recovery worker scheduling and provider-level validation.
-
-Local tests and a successful Next build do not certify any of these items.
+Financial fulfillment remains blocked in code. Unit tests, a build, an endpoint HTTP 200 and an
+operator-generated HMAC do not establish a completed payment or reconciled invoice.
