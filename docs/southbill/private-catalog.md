@@ -37,7 +37,7 @@ scope require review. No invented remainder fee, discount or amount adjustment i
 
 ## Review and activation
 
-Actual catalog data has not been approved merely because the algorithm passes tests.
+The owner approved the actual 37-entry catalog on 2026-09-22 after reviewing its service details and prices.
 Every entry includes its deliverable, method/time, evidence, refund policy, tax category
 and related public category. Confirm the business offers all entries at the stated prices.
 A catalog document is `proposed` with `approval: null` until that review is complete.
@@ -57,13 +57,11 @@ installed version with `npm run southbill -- internal-catalog VERSION`. Agreemen
 explicitly name that version and only the services actually eligible for their order.
 Missing private configuration does not affect existing public agreements.
 
-Enabling the private catalog is separate from invoice emission. The existing paid-invoice
-adapter still requires a verified captured payment, immutable scope and duplicate-invoice
-review. This change does not enable automatic invoices or verify SouthBill draft settlement.
+The private catalog and paid-invoice adapter are enabled in Production. Every invoice still requires a verified captured payment, immutable customer scope and duplicate-invoice review.
 
 ## Approved installation (2026-09-22)
 
 The owner approved the complete 37-entry proposal. The approved registry is installed as
 a sensitive Production environment variable in the existing PulseAW Vercel project.
 Authenticated health checks report version, service count and exact-amount coverage,
-without returning private names or descriptions. Approval does not enable invoice emission.
+without returning private names or descriptions. Production health verifies the approved catalog and the record_prior_payment invoice mode without exposing private service data.
