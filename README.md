@@ -1,6 +1,6 @@
 # PulseAW
 
-SouthBill integration: [implementation and activation status](docs/southbill/README.md). The Live receiver, 18 public products, private exact-amount catalog, payment link and payment-first paid-invoice reconciliation are enabled.
+SouthBill integration: [implementation and activation status](docs/southbill/README.md). The Live receiver, 18 public products, private exact-amount catalog, streamlined Checkout Sessions page and payment-first paid-invoice reconciliation are enabled.
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
