@@ -33,7 +33,7 @@ function paymentLookup(event: Event): string | null {
   if (event.type === 'charge.refunded' && isId(object.id)) return object.id;
   return null;
 }
-function parsePayment(object: Record<string, unknown>, ledger: Ledger): Payment {
+export function parsePayment(object: Record<string, unknown>, ledger: Ledger): Payment {
   requireCondition(isId(object.id) && object.object === 'payment' && typeof object.status === 'string' &&
     Number.isSafeInteger(object.amount) && Number(object.amount) > 0 && typeof object.currency === 'string' &&
     /^[A-Za-z]{3}$/.test(object.currency), 'PAYMENT_SHAPE_UNVERIFIED');
@@ -88,7 +88,7 @@ export async function processNext(ledger: Ledger, client: Pick<SouthbillClient,'
       if (!(error instanceof SouthbillError)) throw error;
       await ledger.finish(job, 'review', error.code, payment); return true;
     }
-    // The plan is durable, but no draft/send/mark_paid/charge call is allowed without an attachment contract.
+    // The observer freezes the plan. The separately enabled invoice worker may record owner-authorized manual settlement.
     await ledger.finish(job, 'blocked', 'ORIGINAL_PAYMENT_ATTACHMENT_UNVERIFIED', payment, plan);
   } catch (error) {
     const code = error instanceof SouthbillError ? error.code : 'PROCESSING_ERROR';
