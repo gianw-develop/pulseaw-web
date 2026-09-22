@@ -81,6 +81,8 @@ export type Agreement = Account & {
   catalogVersion: string; amountCents: number; currency: 'usd';
   customerName: string; customerEmail: string;
   scopeReference: string; consentReference: string; verifiedBy: string;
+  /** Operator evidence that no existing invoice already accounts for this captured payment. */
+  invoiceReviewReference?: string;
   taxReviewed: true; taxRateBps: 0; termsAccepted: true; workApproved: true;
 };
 export function validateAgreement(agreement: Agreement): void {

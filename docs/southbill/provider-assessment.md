@@ -52,9 +52,14 @@ event and verify its delivery; never create a customer or charge merely to manuf
 - Confirm the actual payment partner, PulseAW's enabled methods and Cash App Pay eligibility.
 - Observe a provider-originated signed delivery and validate authentic payment/event shapes.
 - Bind each open-link payment to actual agreed services, buyer, consent evidence and reviewed tax treatment.
-- Obtain a supported original-payment association, or the owner's explicit approval of an alternative invoice flow.
+- The owner explicitly authorized mark_paid bookkeeping on 2026-09-22. Verify it can settle an unsent draft without opening collection, and retain the canonical original payment in the private reconciliation ledger.
 - Prove one authoritative invoice per payment and paid-document delivery without reopening collection.
 - Agree handling of unsupported amounts and cents. The six real services cannot exactly represent every amount.
 
-Financial fulfillment remains blocked in code. Unit tests, a build, an endpoint HTTP 200 and an
+Automatic invoice emission remains disabled pending direct draft settlement verification. The mark_paid
+adapter is implemented with local provider fixtures only. Unit tests, a build, an endpoint HTTP 200 and an
 operator-generated HMAC do not establish a completed payment or reconciled invoice.
+
+The Merchant API returned zero payments, invoices and payment links on the latest Live read on
+2026-09-22. There is no genuine existing payment available for a paid-invoice validation. No fictitious
+Live payment, customer or invoice was created to manufacture that evidence.

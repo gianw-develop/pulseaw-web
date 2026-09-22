@@ -1,6 +1,6 @@
 # PulseAW / SouthBill integration
 
-Status (2026-09-22): the Live receiver, private Supabase ledger and Vercel server configuration are enabled. Financial fulfillment remains unimplemented: the requested original-payment-to-invoice association is still undocumented. Locally signed production probes are not provider-originated delivery or settlement evidence.
+Status (2026-09-22): the Live receiver, private Supabase ledger and Vercel server configuration are enabled. The owner subsequently authorized manual invoice settlement through mark_paid after a verified payment. That adapter is implemented but automatic emission remains disabled until direct draft-to-paid behavior is verified; native payment attachment is not claimed. Locally signed production probes are not provider-originated delivery or settlement evidence.
 
 The approved scope preserves PulseAW's six existing services and implements the groundwork for:
 open amount -> confirmed payment -> exact authorized service allocation -> detailed invoice.
@@ -21,9 +21,15 @@ The existing website and `stripe-automation` are not migrated or modified.
 - Operator commands, private schema/recovery migrations and tests using a real embedded PostgreSQL engine.
 - Authenticated POST /api/internal/southbill/health verifies the deployed database connection without processing an event.
 
-No method creates an invoice, opens another collection attempt, uses mark_paid or processes a charge.
-Original-payment attachment and paid-document delivery require a verified SouthBill implementation.
-An environment flag cannot enable a nonexistent payment-attachment adapter.
+The invoice adapter can create an unsent invoice and call mark_paid only for a canonically verified
+captured payment with a trusted agreement and duplicate-invoice review. This is manual bookkeeping
+of previously received funds, authorized by the owner on 2026-09-22; it is not native payment attachment.
+There is no send, checkout, charge or refund method in this adapter. Automatic emission is currently
+disabled because SouthBill has not yet demonstrated draft -> mark_paid -> paid without /send.
+An intermediate provider draft is inherent in its two-request API. Network recovery cannot guarantee
+an immediate paid state during an outage; permanent rejection is recorded for review, never hidden.
+Paid-document URLs are exposed only after a fresh read verifies paid, amount_paid=total and amount_due=0.
+No automated invoice email delivery is implemented.
 
 ## Catalog behavior
 
@@ -152,8 +158,9 @@ Do not omit the isolated configuration when running later commands. Set the Verc
 to prj_A8bpbNn1kNoFeDj4C6mYDr27HVwe and the Supabase project explicitly to rzyvatbujushojhryohf.
 
 Set SOUTHBILL_ENABLED=false until account-specific credentials, database and signing secret are verified.
-When enabled, this version ONLY observes/reconciles and creates LOCAL invoice plans. It never fulfills
-services or generates a provider invoice. Never advertise the open-link workflow as operational.
+SOUTHBILL_ENABLED controls webhook observation and LOCAL plans. The separate SOUTHBILL_INVOICE_MODE
+must remain disabled until direct draft settlement is verified. record_prior_payment enables the
+owner-authorized invoice adapter for reviewed agreements only. Never advertise an unverified flow as operational.
 
 The existing dedicated Live endpoint is https://www.pulseaw.com/api/webhooks/southbill.
 Its enabled state, wildcard subscription and saved signing-secret suffix were verified through
@@ -175,7 +182,7 @@ Vercel's current Hobby plan does not support the required minute cron frequency.
 
 1. Confirm merchant identity, actual partner/rail, approved methods and PulseAW eligibility.
 2. Confirm a permanent open-amount link, its bounds and how each event maps to the agreed order.
-3. Obtain a documented API associating the ORIGINAL captured payment to the detailed invoice.
+3. Verify direct draft-to-paid mark_paid behavior. The owner approved manual bookkeeping of the original payment; native payment attachment is not required for this alternative.
 4. Verify a single authoritative invoice per payment, including provider-generated invoices.
 5. Verify paid-document access/delivery without reopening collection.
 6. Define unsupported amounts/cents and refund handling; review tax treatment.
@@ -186,9 +193,15 @@ See [provider assessment](provider-assessment.md) and [provider questions](suppo
 ## Verification performed
 
 - Skill toolkit: 20 offline tests passed.
-- PulseAW integration: 39 tests passed, including persistent PostgreSQL close/reopen, exclusive leases, duplicate events, invalid signatures and refund ordering. These use synthetic provider responses.
+- PulseAW integration: 53 tests passed, including persistent PostgreSQL close/reopen, exclusive leases, duplicate events, invalid signatures and refund ordering. These use synthetic provider responses.
 - New merchant read adapter: all six live product/price pairs verified with no writes.
 - Next.js production build and ESLint pass. Next.js upgraded from 16.2.9 to 16.3.5; npm audit reports zero vulnerabilities in the root dependency tree.
 - Production HTTP checks: homepage 200; authenticated database health 200, receiver enabled; unsigned/tampered webhook 400; wrong-mode event 400. A locally signed ping was durably recorded, and a duplicate returned 200 without a second event.
 - Supabase recovery dispatch reached the production worker and processed a labeled local ping fixture. Cron jobs are enabled; these are local transport/recovery checks, not provider payment tests.
 - No real charge, provider invoice, paid-invoice attachment, hosted open link or provider-originated webhook delivery has been tested.
+
+## Owner-authorized paid invoice adapter
+
+See [manual invoice settlement](paid-invoices.md) for the account-specific release gate, operator commands,
+reconciliation requirements and recovery behavior. The USD 5–200 catalog is a separate proposal awaiting
+confirmation of its actual services; it has not replaced the six existing products.

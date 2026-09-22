@@ -4,6 +4,8 @@ import { pulseawAccount } from './account.ts';
 import { connectDatabase } from './database.ts';
 import { Ledger } from './ledger.ts';
 import { SouthbillClient } from './client.ts';
+import { InvoiceClient } from './invoice-client.ts';
+import { InvoiceLedger } from './invoice-ledger.ts';
 let cached: ReturnType<typeof build> | undefined;
 function build() {
   const account = pulseawAccount(process.env);
@@ -13,7 +15,10 @@ function build() {
   requireCondition(!!url, 'DATABASE_CONFIGURATION_REQUIRED');
   const client = new SouthbillClient(process.env.SOUTHBILL_API_KEY ?? '');
   const database = connectDatabase(url);
-  return { ledger: new Ledger(database, account), client, secrets };
+  const ledger=new Ledger(database, account);
+  const invoiceMode=process.env.SOUTHBILL_INVOICE_MODE;
+  requireCondition(!invoiceMode || invoiceMode==='disabled' || invoiceMode==='record_prior_payment','INVALID_INVOICE_MODE');
+  return { ledger, client, secrets, invoices:invoiceMode==='record_prior_payment' ? {store:new InvoiceLedger(ledger),client:new InvoiceClient(process.env.SOUTHBILL_API_KEY ?? '')}:null };
 }
 export function runtime() {
   if (process.env.SOUTHBILL_ENABLED !== 'true') return null;

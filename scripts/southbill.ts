@@ -6,6 +6,9 @@ import { pulseawAccount } from '../server/southbill/account.ts';
 import { Ledger } from '../server/southbill/ledger.ts';
 import { SouthbillClient } from '../server/southbill/client.ts';
 import { processNext } from '../server/southbill/worker.ts';
+import { InvoiceLedger } from '../server/southbill/invoice-ledger.ts';
+import { InvoiceClient } from '../server/southbill/invoice-client.ts';
+import { processInvoiceNext } from '../server/southbill/invoice-worker.ts';
 
 const command = process.argv[2] ?? 'status';
 try {
@@ -23,7 +26,7 @@ try {
         throw new SouthbillError('CATALOG_PROVIDER_MISMATCH');
     }
     console.log('Six SouthBill products and prices verified; no writes.');
-  } else if (['status','migrate','register-agreement','process','requeue'].includes(command)) {
+  } else if (['status','migrate','register-agreement','process','process-invoice','invoice-status','requeue'].includes(command)) {
     const account = pulseawAccount(process.env);
     if (!process.env.SOUTHBILL_DATABASE_URL) throw new SouthbillError('PULSEAW_DATABASE_REQUIRED');
     const db = connectDatabase(process.env.SOUTHBILL_DATABASE_URL);
@@ -31,17 +34,24 @@ try {
       const ledger = new Ledger(db, account);
       if (command === 'migrate') {
         if (process.argv[3] !== '--apply') throw new SouthbillError('USE_MIGRATE_APPLY_AFTER_VERIFYING_PULSEAW_DATABASE');
-        await db.transaction(async connection => { await connection.query(await readFile(new URL('../server/southbill/schema.sql',import.meta.url),'utf8')); });
+        await db.transaction(async connection => { await connection.query(await readFile(new URL('../server/southbill/schema.sql',import.meta.url),'utf8')); await connection.query(await readFile(new URL('../server/southbill/invoice-schema.sql',import.meta.url),'utf8')); });
         console.log('PulseAW SouthBill private schema installed.');
       } else if (command === 'register-agreement') {
         const file = process.argv[3];
         if (!file) throw new SouthbillError('REVIEWED_PRIVATE_AGREEMENT_FILE_REQUIRED');
         const agreement = JSON.parse(await readFile(file,'utf8')) as Agreement;
-        validateAgreement(agreement); await ledger.registerAgreement(agreement);
+        validateAgreement(agreement);
+        if(process.env.SOUTHBILL_INVOICE_MODE==='record_prior_payment' && (!agreement.invoiceReviewReference || agreement.invoiceReviewReference.trim().length<3)) throw new SouthbillError('EXISTING_INVOICE_REVIEW_REQUIRED');
+        await ledger.registerAgreement(agreement);
         console.log('Verified agreement registered; no payment or invoice created.');
       } else if (command === 'requeue') {
         if (!isId(process.argv[3])) throw new SouthbillError('EVENT_ID_REQUIRED');
         await ledger.requeue(process.argv[3]); console.log('Existing event queued for reconciliation.');
+      } else if (command === 'invoice-status') {
+        console.log(JSON.stringify((await db.query('SELECT payment_id,invoice_id,status,outcome_code,paid_document_url FROM pulseaw_southbill.invoice_jobs WHERE merchant_id=$1 AND livemode=$2 ORDER BY created_at DESC LIMIT 50',[account.accountKey,account.livemode])).rows));
+      } else if (command === 'process-invoice') {
+        if(process.env.SOUTHBILL_INVOICE_MODE!=='record_prior_payment') throw new SouthbillError('PAID_INVOICING_DISABLED');
+        console.log(JSON.stringify({processed:await processInvoiceNext(new InvoiceLedger(ledger),new SouthbillClient(process.env.SOUTHBILL_API_KEY ?? ''),new InvoiceClient(process.env.SOUTHBILL_API_KEY ?? ''))}));
       } else if (command === 'process') {
         console.log(JSON.stringify({processed:await processNext(ledger,new SouthbillClient(process.env.SOUTHBILL_API_KEY ?? ''))}));
       } else console.log(JSON.stringify(await ledger.summary()));
