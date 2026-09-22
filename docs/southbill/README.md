@@ -31,7 +31,16 @@ an immediate paid state during an outage; permanent rejection is recorded for re
 Paid-document URLs are exposed only after a fresh read verifies paid, amount_paid=total and amount_due=0.
 No automated invoice email delivery is implemented.
 
-## Catalog behavior
+## Public and private catalogs
+
+Public products and private invoice allocation are separate. The 18 provider products
+retain their current IDs and versions. The private allocator uses a distinct 37-item
+ladder from server-only configuration; actual catalog data is excluded from this
+public repository. See [private catalog](private-catalog.md) for review, activation,
+whole-dollar limits and scope requirements. No private catalog is implicitly selected
+for an existing public agreement.
+
+## Public catalog behavior
 
 Original package prices: USD 1,500; 2,800; 3,900; 4,900; 6,500; 8,000.
 All are one-time engagements. A product may only appear once in a confirmed scope.

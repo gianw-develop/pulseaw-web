@@ -1,3 +1,5 @@
+import { parseInternalCatalog, internalVersion, internalServices, resolveInternalCatalog } from '../server/southbill/internal-catalog.ts';
+import { allocateInternal } from '../server/southbill/internal-allocation.ts';
 import { readFile } from 'node:fs/promises';
 import { engagements } from '../app/engagements.ts';
 import { catalog, catalogVersion, legacyCatalogVersion, supportedAmounts, validateAgreement, isId, SouthbillError } from '../server/southbill/domain.ts';
@@ -14,8 +16,19 @@ import { processInvoiceNext } from '../server/southbill/invoice-worker.ts';
 const command = process.argv[2] ?? 'status';
 try {
   if (command === 'catalog') {
-    console.log(JSON.stringify({catalogVersion, legacyCatalogVersion, products:catalog.map(x=>({id:x.serviceId,name:x.name,USD:x.unitAmountCents/100})),
+    console.log(JSON.stringify({visibility:'public',catalogVersion, legacyCatalogVersion, products:catalog.map(x=>({id:x.serviceId,name:x.name,USD:x.unitAmountCents/100})),
       supportedAmountCount:supportedAmounts(catalog.map(x=>x.serviceId)).length},null,2));
+  } else if (command === 'preview-internal') {
+    const file=process.argv[3];if(!file)throw new SouthbillError('PRIVATE_CATALOG_FILE_REQUIRED');
+    const doc=parseInternalCatalog(JSON.parse(await readFile(file,'utf8')),true);
+    const services=internalServices(doc);
+    const amounts=(process.argv.slice(4).length?process.argv.slice(4):['47','56','91','84']).map(Number);
+    const results=amounts.map(USD=>({USD,lines:allocateInternal(USD*100,services)?.map(x=>({serviceId:x.serviceId,name:x.name,USD:x.unitAmountCents/100,quantity:x.quantity}))??null}));
+    console.log(JSON.stringify({previewOnly:true,status:doc.status,internalVersion:internalVersion(doc),privateServices:services.length,results},null,2));
+  } else if (command === 'internal-catalog') {
+    if(!process.argv[3])throw new SouthbillError('INTERNAL_CATALOG_VERSION_REQUIRED');
+    const {document,services}=resolveInternalCatalog(process.argv[3]);
+    console.log(JSON.stringify({internalVersion:internalVersion(document),visibility:'private',services:services.map(x=>({id:x.serviceId,name:x.name,USD:x.unitAmountCents/100}))},null,2));
   } else if (command === 'verify-catalog') {
     const client = new SouthbillClient(process.env.SOUTHBILL_API_KEY ?? '');
     for (const item of catalog) {
