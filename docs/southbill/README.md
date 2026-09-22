@@ -1,6 +1,6 @@
 # PulseAW / SouthBill integration
 
-Status: implemented and tested; Supabase schema and Vercel server configuration provisioned. Financial fulfillment and the live webhook receiver remain disabled pending the SouthBill contract and signing secret.
+Status (2026-09-22): the Live receiver, private Supabase ledger and Vercel server configuration are enabled. Financial fulfillment remains unimplemented: the requested original-payment-to-invoice association is still undocumented. Locally signed production probes are not provider-originated delivery or settlement evidence.
 
 The approved scope preserves PulseAW's six existing services and implements the groundwork for:
 open amount -> confirmed payment -> exact authorized service allocation -> detailed invoice.
@@ -17,7 +17,8 @@ The existing website and `stripe-automation` are not migrated or modified.
 - Refund/dispute events retain a manual-review state even when older success events arrive later.
 - A local draft invoice payload containing the actual services, original payment reference and exact total.
 - `POST /api/internal/southbill/process`: authenticated, bounded queue worker for recovery.
-- Operator commands, a private schema migration and tests using a real embedded PostgreSQL engine.
+- Supabase pg_cron recovery every minute when due work exists, with a path-bound HMAC credential valid for 60 seconds.
+- Operator commands, private schema/recovery migrations and tests using a real embedded PostgreSQL engine.
 - Authenticated POST /api/internal/southbill/health verifies the deployed database connection without processing an event.
 
 No method creates an invoice, opens another collection attempt, uses mark_paid or processes a charge.
@@ -154,17 +155,21 @@ Set SOUTHBILL_ENABLED=false until account-specific credentials, database and sig
 When enabled, this version ONLY observes/reconciles and creates LOCAL invoice plans. It never fulfills
 services or generates a provider invoice. Never advertise the open-link workflow as operational.
 
-After deployment, add the endpoint in SouthBill Developers -> Webhooks. Store its one-time whsec secret
-in the selected Vercel project's secure environment. Use an endpoint dedicated to this merchant/mode.
-Subscribe to checkout.session.completed, payment_intent.succeeded, invoice.paid, invoice.payment_succeeded,
-checkout.session.refunded, charge.refunded, refund.*, charge.dispute.*, checkout.session.dispute.*,
-checkout.session.expired, checkout.session.canceled, checkout.session.async_payment_pending and
-checkout.session.async_payment_failed. Expand event families into documented individual event names.
+The existing dedicated Live endpoint is https://www.pulseaw.com/api/webhooks/southbill.
+Its enabled state, wildcard subscription and saved signing-secret suffix were verified through
+GET /webhook_endpoints on 2026-09-22. Unknown event types are safely ignored. The endpoint's native
+Test delivery still needs to be observed; locally signed probes do not prove SouthBill delivery.
 
-The dashboard's signed ping.test proves delivery only. The after-response worker processes a queued job;
-a separately authenticated scheduler must invoke the recovery worker for retries and backlog, with a
-Bearer SOUTHBILL_WORKER_TOKEN of at least 32 characters. Schedule availability depends on the actual
-hosting plan and has not been configured. Do not rely solely on after() for reliable retries.
+The after-response worker processes one queued job. Recovery is configured in the confirmed Supabase
+project using server/southbill/recovery.sql. The private Vault secret pulseaw_southbill_worker_token
+must match SOUTHBILL_WORKER_TOKEN in Vercel. Install/update this SQL as the project administrator only
+after deploying support for Pulseaw-Worker-Signature. It upserts two PulseAW-only cron jobs: a minute
+recovery dispatcher and daily seven-day execution-log retention. The dispatcher does not call Vercel
+when no work is due. It sends only a 60-second, method/path-bound HMAC signature to pg_net, never the
+master token. Supabase owns the network queue permissions. A short-lived signature can invoke the
+idempotent worker only; it cannot authorize the health endpoint. Manual operator calls still accept
+the private Bearer token. Only the administrator can execute the dispatcher or read its Vault secret.
+Vercel's current Hobby plan does not support the required minute cron frequency.
 
 ## Before activating the requested financial flow
 
@@ -174,15 +179,16 @@ hosting plan and has not been configured. Do not rely solely on after() for reli
 4. Verify a single authoritative invoice per payment, including provider-generated invoices.
 5. Verify paid-document access/delivery without reopening collection.
 6. Define unsupported amounts/cents and refund handling; review tax treatment.
-7. Authorize any real-payment test separately. Merchant docs currently say live only.
+7. Authorize any real-payment test separately. The owner selected Live-only configuration and declined Sandbox provisioning on 2026-09-22; this does not authorize a real charge.
 
 See [provider assessment](provider-assessment.md) and [provider questions](support-questions.md).
 
 ## Verification performed
 
 - Skill toolkit: 20 offline tests passed.
-- PulseAW integration: 37 tests passed, including persistent PostgreSQL close/reopen, exclusive leases, duplicate events, invalid signatures and refund ordering. These use synthetic provider responses.
+- PulseAW integration: 39 tests passed, including persistent PostgreSQL close/reopen, exclusive leases, duplicate events, invalid signatures and refund ordering. These use synthetic provider responses.
 - New merchant read adapter: all six live product/price pairs verified with no writes.
 - Next.js production build and ESLint pass. Next.js upgraded from 16.2.9 to 16.3.5; npm audit reports zero vulnerabilities in the root dependency tree.
-- HTTP smoke check: homepage 200, disabled webhook 503, unauthorized worker 401.
-- No real charge, provider invoice, paid-invoice attachment, hosted open link or live webhook delivery has been tested.
+- Production HTTP checks: homepage 200; authenticated database health 200, receiver enabled; unsigned/tampered webhook 400; wrong-mode event 400. A locally signed ping was durably recorded, and a duplicate returned 200 without a second event.
+- Supabase recovery dispatch reached the production worker and processed a labeled local ping fixture. Cron jobs are enabled; these are local transport/recovery checks, not provider payment tests.
+- No real charge, provider invoice, paid-invoice attachment, hosted open link or provider-originated webhook delivery has been tested.

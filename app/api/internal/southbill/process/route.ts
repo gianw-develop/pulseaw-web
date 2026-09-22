@@ -1,10 +1,12 @@
 import { runtime as getRuntime, workerAuthorized } from '../../../../../server/southbill/runtime.ts';
 import { processNext } from '../../../../../server/southbill/worker.ts';
+import { validRecoverySignature } from '../../../../../server/southbill/worker-signature.ts';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 export async function POST(request: Request) {
-  if (!workerAuthorized(request.headers.get('authorization')))
+  if (!workerAuthorized(request.headers.get('authorization')) &&
+      !validRecoverySignature(request.headers.get('pulseaw-worker-signature'), process.env.SOUTHBILL_WORKER_TOKEN ?? ''))
     return Response.json({error:'UNAUTHORIZED'}, {status:401});
   try {
     const service = getRuntime();
