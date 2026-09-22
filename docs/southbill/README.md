@@ -2,13 +2,13 @@
 
 Status (2026-09-22): the Live receiver, private Supabase ledger and Vercel server configuration are enabled. The owner subsequently authorized manual invoice settlement through mark_paid after a verified payment. That adapter is implemented but automatic emission remains disabled until direct draft-to-paid behavior is verified; native payment attachment is not claimed. Locally signed production probes are not provider-originated delivery or settlement evidence.
 
-The approved scope preserves PulseAW's six existing services and implements the groundwork for:
+The approved scope preserves PulseAW's six existing packages and adds twelve individual services priced from USD 5 to 200. It implements the groundwork for:
 open amount -> confirmed payment -> exact authorized service allocation -> detailed invoice.
 The existing website and `stripe-automation` are not migrated or modified.
 
 ## What is installed
 
-- Server catalog derived from `app/engagements.ts`, with the six verified SouthBill product/price IDs.
+- Server catalog derived from `app/engagements.ts` and `app/individual-services.ts`, with 18 verified Live SouthBill product/price pairs.
 - Deterministic exact allocation, integer cents, one line per eligible service and no invented fillers.
 - Raw-body HMAC-SHA256 verification with five-minute tolerance and signing-secret rotation.
 - `POST /api/webhooks/southbill`: commits an event before acknowledging it.
@@ -33,12 +33,12 @@ No automated invoice email delivery is implemented.
 
 ## Catalog behavior
 
-Prices: USD 1,500; 2,800; 3,900; 4,900; 6,500; 8,000.
+Original package prices: USD 1,500; 2,800; 3,900; 4,900; 6,500; 8,000.
 All are one-time engagements. A product may only appear once in a confirmed scope.
-The full set has 55 distinct representable totals, from USD 1,500 through 27,600.
+The original six-package set has 55 distinct representable totals, from USD 1,500 through 27,600.
 These are mathematical possibilities, not permission to combine overlapping services.
 
-Examples:
+Examples using the original six-package scope:
 - USD 4,900 -> Paid Acquisition Launch, only when that work was approved.
 - USD 4,300 -> Market Entry Blueprint + Lead Conversion System, only when both were approved.
 - USD 8,000 -> Founder Growth Launch when eligible; an approved Market + Signature scope can also total 8,000.
@@ -101,7 +101,7 @@ also rejected. The internal accountKey must never be substituted for a provider 
 Agreements include accountKey and, only when configured, merchantId.
 
 The dedicated endpoint secret, raw-body signature, explicit live mode and canonical event/payment
-reads using this merchant's own API key remain mandatory. Verify the six pinned catalog products
+reads using this merchant's own API key remain mandatory. Verify all pinned catalog products
 before enabling the receiver. Optional identity configuration does not certify delivery, payment
 settlement or the post-payment invoice flow.
 
@@ -193,8 +193,8 @@ See [provider assessment](provider-assessment.md) and [provider questions](suppo
 ## Verification performed
 
 - Skill toolkit: 20 offline tests passed.
-- PulseAW integration: 53 tests passed, including persistent PostgreSQL close/reopen, exclusive leases, duplicate events, invalid signatures and refund ordering. These use synthetic provider responses.
-- New merchant read adapter: all six live product/price pairs verified with no writes.
+- PulseAW integration: 56 tests passed, including persistent PostgreSQL close/reopen, exclusive leases, duplicate events, invalid signatures and refund ordering. These use synthetic provider responses.
+- Merchant read adapter: all 18 Live product/price pairs verified. Twelve approved products were provisioned in this account; no payment was made.
 - Next.js production build and ESLint pass. Next.js upgraded from 16.2.9 to 16.3.5; npm audit reports zero vulnerabilities in the root dependency tree.
 - Production HTTP checks: homepage 200; authenticated database health 200, receiver enabled; unsigned/tampered webhook 400; wrong-mode event 400. A locally signed ping was durably recorded, and a duplicate returned 200 without a second event.
 - Supabase recovery dispatch reached the production worker and processed a labeled local ping fixture. Cron jobs are enabled; these are local transport/recovery checks, not provider payment tests.
@@ -203,5 +203,13 @@ See [provider assessment](provider-assessment.md) and [provider questions](suppo
 ## Owner-authorized paid invoice adapter
 
 See [manual invoice settlement](paid-invoices.md) for the account-specific release gate, operator commands,
-reconciliation requirements and recovery behavior. The USD 5–200 catalog is a separate proposal awaiting
-confirmation of its actual services; it has not replaced the six existing products.
+reconciliation requirements and recovery behavior. The [USD 5–200 catalog](catalog-5-200-proposal.md) was approved and its 12 products were created and verified in Live. It supplements the six existing packages.
+
+## Approved individual services
+
+The twelve one-time prices are USD 5, 10, 15, 20, 25, 35, 50, 75, 100, 125, 150 and 200.
+They are individual services, not a promise that every whole-dollar amount in that range is supported.
+Each requires its actual approved scope; no invoice line is selected merely to explain a paid amount.
+The allocator uses dynamic programming and preserves deterministic, quantity-one results. Legacy
+agreements retain pulseaw-six-29a06da5c504b302 and reproduce their frozen invoice payload exactly.
+New agreements use the current combined catalog version. No existing product or price was changed.

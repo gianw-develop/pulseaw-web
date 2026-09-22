@@ -3,7 +3,7 @@
 ## Confirmed for PulseAW
 
 - The owner selected the existing six-service catalog and open-amount/payment-first flow.
-- All six Live product/price pairs were read again and matched the approved catalog.
+- All six original Live product/price pairs remain intact. The owner approved twelve additional individual services (USD 5–200); all twelve products and one-time prices were created and verified on 2026-09-22.
 - GET /invoices, /payments and /events returned HTTP 200 with empty lists.
 - GET /webhook_endpoints confirmed the enabled dedicated Live endpoint at
   https://www.pulseaw.com/api/webhooks/southbill with wildcard events. The saved signing-secret suffix matches.

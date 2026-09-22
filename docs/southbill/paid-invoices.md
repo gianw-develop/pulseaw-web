@@ -62,7 +62,7 @@ npm run southbill -- invoice-status
 The recovery endpoint prioritizes one event; when the event queue is idle, it processes one bounded
 invoice job. Initial processing, retries and invoice jobs share the existing private scheduler.
 
-Validation: 53 tests pass, including lost create/mark responses, duplicate events, expired idempotency,
+Validation: 56 tests pass, including lost create/mark responses, duplicate events, expired idempotency,
 wrong amounts/customer, incomplete paid totals, exclusive leases, provider rejection and refund review.
 These fixtures do not establish that the Live provider accepts direct draft settlement.
 
