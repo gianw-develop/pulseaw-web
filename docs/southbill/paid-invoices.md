@@ -1,71 +1,63 @@
-# Manual settlement of a previously captured payment
+# Recording an invoice for a previously captured payment
 
-On 2026-09-22 the owner explicitly requested mark_paid after payment and a paid final invoice.
-This overrides the earlier skill-level prohibition on substituting manual invoice bookkeeping.
-It does not authorize inventing a payment, charging twice or reporting manual settlement as native attachment.
+SouthBill support confirmed on 2026-09-22 that POST /v1/invoices/{id}/mark_paid works directly on an unsent draft. The integration does not call /send and therefore does not send a payment-request email.
 
-## Current state
+After mark_paid, SouthBill returns a paid invoice with paid_at, amount_paid equal to the total, amount_due equal to zero and a public hosted_invoice_url. The invoice number is assigned at creation. SouthBill also confirmed that mark_paid does not create another payment or ledger entry; the original payment-link transaction remains the financial record.
 
-The code is deployed behind SOUTHBILL_INVOICE_MODE. Keep its value disabled until the provider confirms
-or demonstrates draft -> mark_paid -> paid without /send. The documented lifecycle shows mark_paid
-from open, while /send opens collection and emails the buyer. There is no documented atomic create-paid
-call. No genuine payment exists in this Live account yet. The owner declined Sandbox provisioning.
+## Production state
 
-The adapter uses only documented /invoices and /invoices/{id}/mark_paid writes. It deliberately has no
-/send method. If draft marking is rejected, it records review and retains the known invoice ID; it does
-not email a payment request, report success or silently recreate the invoice. A provider draft can exist
-between API calls or during failures. Zero intermediate drafts cannot be guaranteed by this API.
+Production uses SOUTHBILL_INVOICE_MODE=record_prior_payment. The webhook receiver, Supabase ledger, recovery worker and private allocation catalog are enabled. The reusable Live link accepts a customer-entered whole-dollar amount from USD 6 through USD 200.
 
-## Evidence before emission
+No real payment or invoice was created while installing or verifying this flow. The first genuine paid invoice will provide account-specific settlement evidence; provider failures remain visible as review states.
 
-- A canonical captured payment, correct account/mode, exact amount/currency and buyer email.
-- A trusted immutable agreement with the actual services, consent, tax review and payment binding.
-- invoiceReviewReference: operator evidence that no existing invoice already accounts for the payment.
-  Include it before registering the immutable agreement. This is not a browser-supplied consent flag.
-- Supported source checkout or payment_link and no existing invoice pointer on the payment.
+## Required evidence
 
-The invoice notes and metadata state that this is a manual record of the original SouthBill payment.
-The original payment ID is retained locally and in metadata; metadata alone is not a native association.
+Each invoice requires:
 
-## Recovery and verification
+- A canonical succeeded SouthBill payment from checkout or payment_link.
+- The exact account mode, amount, USD currency, customer name and customer email.
+- A reviewed agreement containing the services actually purchased, consent evidence, tax review and the unique payment binding.
+- invoiceReviewReference confirming that the operator checked for any invoice already representing the payment.
+- Whole-dollar totals supported by the approved scope. Cents and unsupported totals stop for review.
 
-invoice_jobs is private and unique per account/mode/payment. Exclusive leases prevent parallel workers
-from issuing two invoices. Stable create/mark keys are saved by derivation from that binding.
-A lost creation response is reconciled by metadata search before any repeated create. A repeated create
-is allowed only within 23 hours of its original request, inside the documented 24-hour retention window.
-After that, an unresolved result requires review. Pagination is bounded and fails closed.
+A shared payment-link reference identifies the source link. It does not identify one customer order or authorize invoice services by itself.
 
-Only a fresh paid invoice with matching lines, subtotal, zero reviewed tax, total, buyer, original-payment
-reference, amount_paid=total, amount_due=0 and paid_at is recorded as paid. Its official paid URL is then
-available through the private operator command. No invoice email is sent by this integration.
-Refund/dispute review of the original payment also flags its completed manual invoice for accounting
-review; this adapter does not claim that an original-payment refund automatically updates a manual invoice.
+## Duplicate prevention and recovery
 
-## Setup and operations
+The invoice stores source_payment, payment_record and reconciliation_ref metadata. Before creating anything, the worker scans existing invoices for source_payment or reconciliation_ref. Creation also uses the stable idempotency key inv-<payment_id>.
 
-Apply invoice-schema.sql as the confirmed database administrator. Grant only SELECT/INSERT/UPDATE on
-invoice_jobs to pulseaw_southbill_runtime; revoke PUBLIC/anon/authenticated access. Apply recovery.sql
-after this migration. The scheduler includes pending invoice work and post-refund review.
+The draft is never sent. Only a verified draft can proceed to mark_paid. An invoice that is already open, void, mismatched or incomplete stops for review. Lost create or mark_paid responses are reconciled by rereading SouthBill; the worker does not blindly create another invoice.
 
-After direct draft settlement is verified, configure SOUTHBILL_INVOICE_MODE=record_prior_payment in the
-existing Vercel project and redeploy. User authorization for mark_paid is already present; do not ask again.
-Until verification, leave the switch disabled while the existing webhook receiver remains enabled.
+Completion requires a fresh provider read that verifies:
 
-Commands (ignored environment file only):
+- status paid;
+- the exact customer, lines, subtotal, zero reviewed tax and total;
+- a provider invoice number;
+- amount_paid equal to total, amount_due equal to zero and paid_at present;
+- a valid public SouthBill hosted invoice URL.
 
-```sh
+Refund or dispute activity on the original payment flags the completed invoice job for accounting review.
+
+## Operator flow
+
+1. Agree the services and whole-dollar total with the customer before sharing the link.
+2. The customer pays through the Live link.
+3. Verify the captured payment and confirm that no invoice already represents it.
+4. Complete a private agreement with the real payment ID, buyer, service scope, consent, tax evidence and invoiceReviewReference.
+5. Register the agreement. If its webhook event arrived first, requeue that real event.
+6. The scheduled worker creates the unsent draft, marks it paid and stores the public document URL.
+
+Commands:
+
+~~~sh
 npm run southbill -- register-agreement .southbill/reviewed-order.json
+npm run southbill -- requeue EVENT_ID
 npm run southbill -- process-invoice
 npm run southbill -- invoice-status
-```
+~~~
 
-The recovery endpoint prioritizes one event; when the event queue is idle, it processes one bounded
-invoice job. Initial processing, retries and invoice jobs share the existing private scheduler.
+The public repository contains no real client agreements or private catalog contents.
 
-Validation: 56 tests pass, including lost create/mark responses, duplicate events, expired idempotency,
-wrong amounts/customer, incomplete paid totals, exclusive leases, provider rejection and refund review.
-These fixtures do not establish that the Live provider accepts direct draft settlement.
+Validation: 69 tests, ESLint and the Next.js production build pass. Production health confirms the database, receiver, invoice mode and all 195 private whole-dollar allocations. These checks do not substitute for a genuine client payment.
 
-Sources: [Invoices](https://www.southbill.com/docs/api/invoices),
-[Idempotency](https://www.southbill.com/docs/api/idempotency),
-[Payments](https://www.southbill.com/docs/api/payments).
+Sources: [Invoices](https://www.southbill.com/docs/api/invoices), [Idempotency](https://www.southbill.com/docs/api/idempotency), [Payments](https://www.southbill.com/docs/api/payments).

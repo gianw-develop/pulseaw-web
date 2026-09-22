@@ -13,7 +13,8 @@
   mode rejection were checked over production HTTP. These are not authentic provider-originated events.
 - Supabase pg_cron/pg_net recovery dispatch reached the production worker and processed a local fixture.
 - The owner reports payouts restored; this has not been independently confirmed by a payout API.
-- The owner chose Live-only configuration and declined Sandbox account/key creation. No real charge is authorized.
+- The owner chose Live-only configuration and declined Sandbox account/key creation. No real charge was made during installation.
+- The active link, hosted page and global payment/invoice lists returned HTTP 200. The link-scoped purchases endpoint returned HTTP 500; the webhook and invoice worker do not depend on that endpoint.
 
 ## Current published Merchant API contracts
 
@@ -32,34 +33,25 @@ Primary pages reviewed 2026-09-22; saved copies are in ignored local research st
 Reusable payment links now have a documented Merchant API. Custom pricing plus allow_custom_amount
 supports minimum/maximum amounts. Name, email, phone and billing address are collected; an optional
 buyer note does not itself establish the contracted scope. A shared link reference is not a unique
-order reference for every buyer. No permanent link has been created for the unfinished invoice flow.
+order reference for every buyer. The verified Live link is active for whole-dollar totals from USD 6 through 200.
 
 The current Sandbox documentation describes isolated merchant accounts and test keys; this supersedes
 the earlier Live-only assessment. No Sandbox account or key was created in this task.
 
-The invoice API documents creation, draft updates, send, void, mark_paid and retrieval of payments
-already booked against an invoice. It still does not document attaching an existing captured payment
-to a newly created invoice. Metadata is not attachment. mark_paid records an out-of-band payment;
-/send opens collection and can email the buyer. Neither is a substitute for the requested paid invoice.
-The App API and Stripe API are separate contracts and must not be used to invent Merchant API endpoints.
+SouthBill support confirmed that mark_paid accepts an unsent draft, sends no payment-request email, creates no second payment or ledger entry and exposes the hosted invoice document after settlement. A payment link creates a payment and receipt but no invoice. The integration therefore records source_payment metadata, searches before creation and uses inv-payment-id idempotency. Metadata remains reconciliation evidence rather than a native payment attachment.
 
 The current event list no longer documents product.created/product.updated. Catalog updates are not
 accepted as proof of native webhook testing. Use a documented endpoint test or an authentic relevant
 event and verify its delivery; never create a customer or charge merely to manufacture such evidence.
 
-## Still required before the requested financial workflow
+## Remaining account and per-order checks
 
-- Confirm the actual payment partner, PulseAW's enabled methods and Cash App Pay eligibility.
-- Observe a provider-originated signed delivery and validate authentic payment/event shapes.
-- Bind each open-link payment to actual agreed services, buyer, consent evidence and reviewed tax treatment.
-- The owner explicitly authorized mark_paid bookkeeping on 2026-09-22. Verify it can settle an unsent draft without opening collection, and retain the canonical original payment in the private reconciliation ledger.
-- Prove one authoritative invoice per payment and paid-document delivery without reopening collection.
-- Agree handling of unsupported amounts and cents. The six real services cannot exactly represent every amount.
+- Confirm PulseAW method eligibility, including Cash App Pay, in the account and actual hosted checkout.
+- Observe the first provider-originated signed payment delivery and validate its account-specific shape.
+- Bind each payment to actual agreed services, buyer, consent evidence and reviewed tax treatment.
+- Reject cents and any total unsupported by the approved order scope.
+- Review refunds, disputes, already-open invoices and provider inconsistencies manually.
 
-Automatic invoice emission remains disabled pending direct draft settlement verification. The mark_paid
-adapter is implemented with local provider fixtures only. Unit tests, a build, an endpoint HTTP 200 and an
-operator-generated HMAC do not establish a completed payment or reconciled invoice.
+Automatic invoice emission is enabled for reviewed agreements through record_prior_payment. Local tests and production health prove the deployed controls; the first genuine customer payment will provide account-specific provider settlement evidence.
 
-The Merchant API returned zero payments, invoices and payment links on the latest Live read on
-2026-09-22. There is no genuine existing payment available for a paid-invoice validation. No fictitious
-Live payment, customer or invoice was created to manufacture that evidence.
+The latest Live read returned zero payments and zero invoices. One active custom-amount payment link exists. No fictitious Live payment, customer or invoice was created to manufacture settlement evidence.

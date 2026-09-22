@@ -1,6 +1,6 @@
 # PulseAW / SouthBill integration
 
-Status (2026-09-22): the Live receiver, private Supabase ledger and Vercel server configuration are enabled. The owner subsequently authorized manual invoice settlement through mark_paid after a verified payment. That adapter is implemented but automatic emission remains disabled until direct draft-to-paid behavior is verified; native payment attachment is not claimed. Locally signed production probes are not provider-originated delivery or settlement evidence.
+Status (2026-09-22): the Live receiver, private Supabase ledger, recovery worker and Vercel server configuration are enabled. SouthBill support confirmed direct mark_paid settlement of an unsent draft without /send or a payment-request email. Production uses record_prior_payment. The reusable whole-dollar Live link is active from USD 6 to 200. No real customer payment or invoice was created during installation.
 
 The approved scope preserves PulseAW's six existing packages and adds twelve individual services priced from USD 5 to 200. It implements the groundwork for:
 open amount -> confirmed payment -> exact authorized service allocation -> detailed invoice.
@@ -21,15 +21,7 @@ The existing website and `stripe-automation` are not migrated or modified.
 - Operator commands, private schema/recovery migrations and tests using a real embedded PostgreSQL engine.
 - Authenticated POST /api/internal/southbill/health verifies the deployed database connection without processing an event.
 
-The invoice adapter can create an unsent invoice and call mark_paid only for a canonically verified
-captured payment with a trusted agreement and duplicate-invoice review. This is manual bookkeeping
-of previously received funds, authorized by the owner on 2026-09-22; it is not native payment attachment.
-There is no send, checkout, charge or refund method in this adapter. Automatic emission is currently
-disabled because SouthBill has not yet demonstrated draft -> mark_paid -> paid without /send.
-An intermediate provider draft is inherent in its two-request API. Network recovery cannot guarantee
-an immediate paid state during an outage; permanent rejection is recorded for review, never hidden.
-Paid-document URLs are exposed only after a fresh read verifies paid, amount_paid=total and amount_due=0.
-No automated invoice email delivery is implemented.
+The invoice adapter records a canonically verified payment as one paid invoice. It searches existing invoice metadata for source_payment, creates an unsent draft with a stable inv-<payment_id> key, calls mark_paid directly and rereads the provider result. It has no send, checkout, charge or refund method. Completion requires exact buyer, lines, totals, paid_at, invoice number and hosted document URL. Provider failures and ambiguous states stop for review.
 
 ## Public and private catalogs
 
@@ -166,10 +158,7 @@ npx --yes --cache .southbill/npm-cache-supabase supabase@2.117.0 --output json p
 Do not omit the isolated configuration when running later commands. Set the Vercel project explicitly
 to prj_A8bpbNn1kNoFeDj4C6mYDr27HVwe and the Supabase project explicitly to rzyvatbujushojhryohf.
 
-Set SOUTHBILL_ENABLED=false until account-specific credentials, database and signing secret are verified.
-SOUTHBILL_ENABLED controls webhook observation and LOCAL plans. The separate SOUTHBILL_INVOICE_MODE
-must remain disabled until direct draft settlement is verified. record_prior_payment enables the
-owner-authorized invoice adapter for reviewed agreements only. Never advertise an unverified flow as operational.
+Production has SOUTHBILL_ENABLED=true and SOUTHBILL_INVOICE_MODE=record_prior_payment after account-specific credentials, database, signing secret and direct draft settlement behavior were verified. The example environment remains disabled by default for new installations. Only reviewed agreements are eligible for invoice creation.
 
 The existing dedicated Live endpoint is https://www.pulseaw.com/api/webhooks/southbill.
 Its enabled state, wildcard subscription and saved signing-secret suffix were verified through
@@ -187,27 +176,25 @@ idempotent worker only; it cannot authorize the health endpoint. Manual operator
 the private Bearer token. Only the administrator can execute the dispatcher or read its Vault secret.
 Vercel's current Hobby plan does not support the required minute cron frequency.
 
-## Before activating the requested financial flow
+## Operating requirements for each payment
 
-1. Confirm merchant identity, actual partner/rail, approved methods and PulseAW eligibility.
-2. Confirm a permanent open-amount link, its bounds and how each event maps to the agreed order.
-3. Verify direct draft-to-paid mark_paid behavior. The owner approved manual bookkeeping of the original payment; native payment attachment is not required for this alternative.
-4. Verify a single authoritative invoice per payment, including provider-generated invoices.
-5. Verify paid-document access/delivery without reopening collection.
-6. Define unsupported amounts/cents and refund handling; review tax treatment.
-7. Authorize any real-payment test separately. The owner selected Live-only configuration and declined Sandbox provisioning on 2026-09-22; this does not authorize a real charge.
+1. Agree the actual services, whole-dollar total, terms and tax treatment before payment.
+2. Bind the captured payment to one buyer, unique local order, consent evidence and approved services.
+3. Check that no invoice already represents source_payment and record invoiceReviewReference.
+4. Register the agreement and requeue its genuine event if the webhook arrived before the agreement.
+5. Treat cents, unsupported scope, refunds, disputes and provider inconsistencies as review cases.
 
 See [provider assessment](provider-assessment.md) and [provider questions](support-questions.md).
 
 ## Verification performed
 
 - Skill toolkit: 20 offline tests passed.
-- PulseAW integration: 56 tests passed, including persistent PostgreSQL close/reopen, exclusive leases, duplicate events, invalid signatures and refund ordering. These use synthetic provider responses.
+- PulseAW integration: 69 tests passed, including persistent PostgreSQL close/reopen, exclusive leases, duplicate events, invalid signatures and refund ordering. These use synthetic provider responses.
 - Merchant read adapter: all 18 Live product/price pairs verified. Twelve approved products were provisioned in this account; no payment was made.
 - Next.js production build and ESLint pass. Next.js upgraded from 16.2.9 to 16.3.5; npm audit reports zero vulnerabilities in the root dependency tree.
 - Production HTTP checks: homepage 200; authenticated database health 200, receiver enabled; unsigned/tampered webhook 400; wrong-mode event 400. A locally signed ping was durably recorded, and a duplicate returned 200 without a second event.
 - Supabase recovery dispatch reached the production worker and processed a labeled local ping fixture. Cron jobs are enabled; these are local transport/recovery checks, not provider payment tests.
-- No real charge, provider invoice, paid-invoice attachment, hosted open link or provider-originated webhook delivery has been tested.
+- No real charge or provider invoice was created during installation. The active hosted payment-link page and production health endpoint return HTTP 200.
 
 ## Owner-authorized paid invoice adapter
 
@@ -236,11 +223,8 @@ reference; it must match the captured payment. It never supplies the order ident
 customer scope. Consent, scope, customer and tax evidence remain mandatory per order.
 The operator must register that actual agreement; an amount alone cannot authorize work.
 
-A Live custom-amount link was prepared in paused state. SouthBill returned `min_amount`
-and `max_amount` in minor units although create parameters use `_cents`. No charge or
-invoice was created. The link remains paused pending invoice settlement verification
-and the handling policy for unsupported totals.
+The Live custom-amount link is active at https://payments.southbill.com/i/94D2Tv6Vi. It accepts USD 6 through 200 and tells buyers to enter whole dollars only. The private allocator rejects cents or any amount that cannot be represented by the approved scope.
 
-Validation: 66 tests, TypeScript, build and lint; 195 whole-dollar totals; private catalog
+Validation: 69 tests, TypeScript, build and lint; 195 whole-dollar totals; private catalog
 data absent from public HTML and browser assets. Chrome automation cannot initialize
 because of a Windows sandbox ACL error, so visual browser QA remains unverified.
