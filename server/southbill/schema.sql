@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS pulseaw_southbill.payment_records (
 CREATE TABLE IF NOT EXISTS pulseaw_southbill.invoice_plans (
   merchant_id text NOT NULL, livemode boolean NOT NULL, payment_id text NOT NULL,
   plan jsonb NOT NULL, plan_hash text NOT NULL,
-  status text NOT NULL CHECK (status IN ('awaiting_provider_contract','review')),
+  status text NOT NULL CHECK (status IN ('awaiting_provider_contract','ready_for_prior_payment_recording','review')),
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (merchant_id, livemode, payment_id),
   FOREIGN KEY (merchant_id, livemode, payment_id)

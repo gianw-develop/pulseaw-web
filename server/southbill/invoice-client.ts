@@ -24,14 +24,15 @@ export class InvoiceClient {
     requireCondition(isRecord(result), 'INVOICE_INVALID_OBJECT');
     return result as Record<string, unknown>;
   }
-  async find(reference: string, after?: string) {
-    requireCondition(isId(reference) && (!after || isId(after)), 'INVALID_INVOICE_REFERENCE');
+  async find(sourcePayment: string, reconciliationReference: string, after?: string) {
+    requireCondition(isId(sourcePayment) && isId(reconciliationReference) && (!after || isId(after)), 'INVALID_INVOICE_REFERENCE');
     const result = await this.request('/invoices?limit=100' + (after ? '&starting_after=' + encodeURIComponent(after) : ''));
     requireCondition(Array.isArray(result.data) && typeof result.has_more === 'boolean', 'INVOICE_LIST_SHAPE_UNVERIFIED');
     const rows = result.data as Record<string, unknown>[];
     requireCondition(rows.every(row=>isRecord(row) && isId(row.id)), 'INVOICE_LIST_SHAPE_UNVERIFIED');
     requireCondition(!result.has_more || (isId(rows.at(-1)?.id) && rows.at(-1)?.id!==after), 'INVOICE_PAGINATION_INVALID');
-    return { matches: rows.filter(row => isRecord(row.metadata) && row.metadata.reconciliation_key === reference),
+    return { matches: rows.filter(row => isRecord(row.metadata) &&
+        (row.metadata.source_payment === sourcePayment || row.metadata.reconciliation_ref === reconciliationReference)),
       next: result.has_more ? rows.at(-1)?.id : null };
   }
   get(id: string) {

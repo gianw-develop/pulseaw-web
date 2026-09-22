@@ -16,7 +16,7 @@ const agreement = () => ({
 });
 const payment = () => ({
   id:'cs_1',livemode:true,status:'succeeded',amount:490000,currency:'USD',
-  customer_name:'Synthetic Customer',customer_email:'buyer@example.invalid',reference:'order_1',
+  customer_name:'Synthetic Customer',customer_email:'buyer@example.invalid',reference:'order_1',payment_intent:'pi_1',
 });
 test('catalog preserves six packages and adds the twelve approved individual services',()=>{
   assert.deepEqual(legacyCatalog.map(x=>x.unitAmountCents),[150000,280000,390000,490000,650000,800000]);
@@ -48,12 +48,15 @@ test('scope controls allocation and deterministic choice does not rotate service
   assert.equal(allocate(800000,['acquisition']),null);
   assert.equal(supportedAmounts(all).at(-1),2760000);
 });
-test('invoice plan freezes real lines, total and an unsent draft but remains blocked',()=>{
+test('invoice plan freezes real lines, total and an unsent draft ready for prior-payment recording',()=>{
   const plan=planInvoice(payment(),agreement());
   assert.equal(plan.amountCents,490000);
   assert.equal(plan.draftPayload.auto_send,false);
   assert.equal(plan.draftPayload.line_items[0].unit_amount,490000);
-  assert.equal(plan.status,'awaiting_provider_contract');
+  assert.equal(plan.status,'ready_for_prior_payment_recording');
+  assert.deepEqual(plan.blockers,[]);
+  assert.equal(plan.draftPayload.metadata.source_payment,'pi_1');
+  assert.equal(plan.draftPayload.metadata.payment_record,'cs_1');
   assert.throws(attachPreviouslyCapturedPayment,/ORIGINAL_PAYMENT_ATTACHMENT_UNVERIFIED/);
 });
 test('customer, merchant, environment, payment, contract and tax mismatches cannot plan invoices',()=>{
@@ -101,7 +104,7 @@ test('each approved individual service invoices its own exact price and cannot b
  assert.equal(allocate(600,individualCatalog.map(x=>x.serviceId)),null);
 });
 
-test('publishing new services does not change previously frozen six-service invoice plans',()=>{
+test('the original six-service catalog retains exact lines under the confirmed invoice contract',()=>{
  assert.equal(legacyCatalogVersion,'pulseaw-six-29a06da5c504b302');
  const expected=JSON.parse(readFileSync(new URL('./fixtures/southbill-legacy-plan.json',import.meta.url),'utf8'));
  const plan=planInvoice(payment(),{...agreement(),catalogVersion:legacyCatalogVersion});

@@ -86,8 +86,8 @@ export class Ledger {
           status = 'review';
           code = needsReview ? code : 'PAYMENT_ALREADY_FLAGGED_FOR_REVIEW';
         } else if (plan) {
-          await db.query('INSERT INTO pulseaw_southbill.invoice_plans (merchant_id,livemode,payment_id,plan,plan_hash,status) VALUES ($1,$2,$3,$4,$5,\'awaiting_provider_contract\') ON CONFLICT DO NOTHING',
-            [...this.params(), payment.id, JSON.stringify(plan), digest(plan)]);
+          await db.query('INSERT INTO pulseaw_southbill.invoice_plans (merchant_id,livemode,payment_id,plan,plan_hash,status) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING',
+            [...this.params(), payment.id, JSON.stringify(plan), digest(plan), plan.status]);
           const stored = await db.query('SELECT plan_hash FROM pulseaw_southbill.invoice_plans WHERE merchant_id=$1 AND livemode=$2 AND payment_id=$3', [...this.params(), payment.id]);
           requireCondition(stored.rows[0]?.plan_hash === digest(plan), 'INVOICE_PLAN_IMMUTABLE');
         }
