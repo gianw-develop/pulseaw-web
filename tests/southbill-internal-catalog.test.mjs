@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { INTERNAL_PRICE_LADDER, allocateInternal } from '../server/southbill/internal-allocation.ts';
-import { parseInternalCatalog, internalVersion, internalServices, resolveInternalCatalog } from '../server/southbill/internal-catalog.ts';
+import { parseInternalCatalog, internalVersion, internalServices, resolveInternalCatalog, internalCatalogHealth } from '../server/southbill/internal-catalog.ts';
 import { catalog, catalogVersion, legacyCatalogVersion, allocate, supportedAmounts, planInvoice, validateAgreement } from '../server/southbill/domain.ts';
 
 // Synthetic entries only. PulseAW's real private names and pricing are never committed.
@@ -86,4 +86,12 @@ test('private catalog configuration does not alter public catalog versions or th
   assert.equal(catalog.length,18);assert.ok(catalog.every(x=>!x.serviceId.startsWith('internal-')));
   assert.equal(allocate(4700,catalog.map(x=>x.serviceId)),null);
  });
+});
+
+test('authenticated health proves private coverage without returning its service details',()=>{
+ withRegistry([document()],()=>{
+  const health=internalCatalogHealth();assert.equal(health.configured,true);assert.equal(health.versions[0].serviceCount,37);assert.equal(health.versions[0].coveredWholeDollarAmounts,195);
+  const output=JSON.stringify(health);assert.ok(!output.includes('Synthetic service'));assert.ok(!output.includes('internal-synthetic'));
+ });
+ withRegistry([{...document(),status:'proposed',approval:null}],()=>assert.throws(internalCatalogHealth,/APPROVAL_REQUIRED/));
 });

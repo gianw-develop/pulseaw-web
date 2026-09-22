@@ -1,5 +1,5 @@
 import { digest, isId, isRecord, requireCondition, SouthbillError } from './invariants.ts';
-import { INTERNAL_PRICE_LADDER } from './internal-allocation.ts';
+import { INTERNAL_PRICE_LADDER, allocateInternal } from './internal-allocation.ts';
 import type { Service } from './domain.ts';
 
 export type InternalEntry = Readonly<{
@@ -56,7 +56,7 @@ export function internalServices(doc:InternalCatalog):readonly Service[] {
   })));
 }
 /** Explicit immutable versions only; a public agreement never falls back to private prices. */
-export function resolveInternalCatalog(version:string):{document:InternalCatalog;services:readonly Service[]} {
+function registeredInternalCatalogs():InternalCatalog[] {
   const raw=process.env.SOUTHBILL_INTERNAL_CATALOG_JSON;
   requireCondition(raw && raw.length<=60000,'INTERNAL_CATALOG_NOT_CONFIGURED');
   let input:unknown;
@@ -65,7 +65,21 @@ export function resolveInternalCatalog(version:string):{document:InternalCatalog
   const documents=(input as {catalogs:unknown[]}).catalogs.map(x=>parseInternalCatalog(x));
   const versions=documents.map(internalVersion);
   requireCondition(new Set(versions).size===versions.length,'DUPLICATE_INTERNAL_CATALOG_VERSION');
-  const document=documents.find((_,i)=>versions[i]===version);
+  return documents;
+}
+export function resolveInternalCatalog(version:string):{document:InternalCatalog;services:readonly Service[]} {
+  const document=registeredInternalCatalogs().find(doc=>internalVersion(doc)===version);
   requireCondition(document,'CATALOG_VERSION_MISMATCH');
   return {document:document!,services:internalServices(document!)};
+}
+
+/** Authenticated health evidence only: never return private service names or descriptions. */
+export function internalCatalogHealth() {
+  if (!process.env.SOUTHBILL_INTERNAL_CATALOG_JSON) return {configured:false,versions:[]};
+  return {configured:true,versions:registeredInternalCatalogs().map(doc=>{
+    const services=internalServices(doc);
+    const covered=Array.from({length:195},(_,i)=>(i+6)*100).filter(amount=>allocateInternal(amount,services)!==null).length;
+    requireCondition(covered===195,'INTERNAL_CATALOG_COVERAGE_FAILED');
+    return {version:internalVersion(doc),serviceCount:services.length,coveredWholeDollarAmounts:covered,minimumUSD:6,maximumUSD:200};
+  })};
 }

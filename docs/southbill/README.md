@@ -222,3 +222,25 @@ Each requires its actual approved scope; no invoice line is selected merely to e
 The allocator uses dynamic programming and preserves deterministic, quantity-one results. Legacy
 agreements retain pulseaw-six-29a06da5c504b302 and reproduce their frozen invoice payload exactly.
 New agreements use the current combined catalog version. No existing product or price was changed.
+
+## Catalog activation and reusable link references (2026-09-22)
+
+The owner approved the separate private 37-service catalog. Its Production configuration
+is server-only; the public repository contains the algorithm and synthetic fixtures only.
+The twelve individual public services now have a dedicated `/services` page with their
+approved scope, one-time USD price, delivery window and existing enquiry flow.
+
+Each agreement retains a unique local `reference` and canonical `expectedPaymentId`.
+For a reusable provider link, optional `sourceReference` records the shared provider
+reference; it must match the captured payment. It never supplies the order identity or
+customer scope. Consent, scope, customer and tax evidence remain mandatory per order.
+The operator must register that actual agreement; an amount alone cannot authorize work.
+
+A Live custom-amount link was prepared in paused state. SouthBill returned `min_amount`
+and `max_amount` in minor units although create parameters use `_cents`. No charge or
+invoice was created. The link remains paused pending invoice settlement verification
+and the handling policy for unsupported totals.
+
+Validation: 66 tests, TypeScript, build and lint; 195 whole-dollar totals; private catalog
+data absent from public HTML and browser assets. Chrome automation cannot initialize
+because of a Windows sandbox ACL error, so visual browser QA remains unverified.

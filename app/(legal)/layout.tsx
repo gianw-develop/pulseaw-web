@@ -23,7 +23,7 @@ export default function LegalLayout({
             <Link href="/" className="hover:text-zinc-900">
               Home
             </Link>
-            <Link href="/#services" className="hover:text-zinc-900">
+            <Link href="/services" className="hover:text-zinc-900">
               Services
             </Link>
             <Link href="/#contact" className="hover:text-zinc-900">

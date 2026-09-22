@@ -115,3 +115,12 @@ test('catalog-wide allocation remains deterministic and does not repeat a servic
  assert.equal(new Set(lines.map(x=>x.serviceId)).size,18);assert.equal(lines.reduce((sum,x)=>sum+x.unitAmountCents,0),total);
  assert.deepEqual(allocate(20000,['utm-check','landing-audit','ad-copy-pack','launch-readiness']).map(x=>x.serviceId),['launch-readiness']);
 });
+
+test('a reusable link reference stays separate from the unique reviewed order reference',()=>{
+ const doc={...agreement(),reference:'local_order_1',sourceReference:'pulseaw_shared_link'};
+ const plan=planInvoice({...payment(),reference:'pulseaw_shared_link'},doc);
+ assert.equal(plan.draftPayload.metadata.order_reference,'local_order_1');
+ assert.equal(plan.paymentId,doc.expectedPaymentId);
+ assert.throws(()=>planInvoice({...payment(),reference:'other_link'},doc),/PAYMENT_BINDING_MISMATCH/);
+ assert.throws(()=>validateAgreement({...doc,sourceReference:''}),/PROVIDER_REFERENCE_REQUIRED/);
+});

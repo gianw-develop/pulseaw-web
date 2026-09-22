@@ -80,7 +80,8 @@ export function supportedAmounts(approvedServiceIds: readonly string[],version=c
   amounts.delete(0);return [...amounts].sort((a,b)=>a-b);
 }
 export type Agreement = Account & {
-  reference: string; expectedPaymentId: string; approvedServiceIds: string[];
+  /** Unique local order reference; sourceReference may identify a shared provider link. */
+  reference: string; sourceReference?: string; expectedPaymentId: string; approvedServiceIds: string[];
   catalogVersion: string; amountCents: number; currency: 'usd';
   customerName: string; customerEmail: string;
   scopeReference: string; consentReference: string; verifiedBy: string;
@@ -91,6 +92,7 @@ export type Agreement = Account & {
 export function validateAgreement(agreement: Agreement): void {
   assertAccount(agreement);
   requireCondition(isId(agreement.reference) && isId(agreement.expectedPaymentId), 'PAYMENT_BINDING_REQUIRED');
+  if(agreement.sourceReference!==undefined) requireCondition(isId(agreement.sourceReference),'PROVIDER_REFERENCE_REQUIRED');
   requireCondition(typeof agreement.catalogVersion === 'string', 'CATALOG_VERSION_MISMATCH');
   resolveCatalog(agreement.catalogVersion);
   if (isInternalVersion(agreement.catalogVersion)) requireCondition(agreement.accountKey==='pulseaw','INTERNAL_CATALOG_IDENTITY_MISMATCH');
@@ -111,7 +113,7 @@ export type Payment = {
 /** Local invoice plan only; never a second payable invoice for an already-paid order. */
 export function planInvoice(payment: Payment, agreement: Agreement) {
   validateAgreement(agreement);
-  requireCondition(payment.id === agreement.expectedPaymentId && payment.reference === agreement.reference, 'PAYMENT_BINDING_MISMATCH');
+  requireCondition(payment.id === agreement.expectedPaymentId && payment.reference === (agreement.sourceReference??agreement.reference), 'PAYMENT_BINDING_MISMATCH');
   requireCondition(payment.livemode === agreement.livemode, 'PAYMENT_MODE_MISMATCH');
   verifyProviderMerchant(payment.merchant_id, agreement, 'PAYMENT_ACCOUNT_MISMATCH');
   requireCondition(payment.status === 'succeeded', 'PAYMENT_NOT_CAPTURED');

@@ -60,3 +60,10 @@ Missing private configuration does not affect existing public agreements.
 Enabling the private catalog is separate from invoice emission. The existing paid-invoice
 adapter still requires a verified captured payment, immutable scope and duplicate-invoice
 review. This change does not enable automatic invoices or verify SouthBill draft settlement.
+
+## Approved installation (2026-09-22)
+
+The owner approved the complete 37-entry proposal. The approved registry is installed as
+a sensitive Production environment variable in the existing PulseAW Vercel project.
+Authenticated health checks report version, service count and exact-amount coverage,
+without returning private names or descriptions. Approval does not enable invoice emission.
