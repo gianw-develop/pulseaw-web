@@ -103,8 +103,8 @@ test('captured payment creates one frozen local plan across distinct duplicate e
   const plans=await rows('invoice_plans');assert.equal(plans.length,1);
   assert.equal(plans[0].plan.draftPayload.auto_send,false);
   assert.equal(plans[0].plan.amountCents,490000);
-  assert.equal(plans[0].status,'awaiting_provider_contract');
-  assert.ok((await rows('events')).every(e=>e.status==='blocked'));
+  assert.equal(plans[0].status,'ready_for_prior_payment_recording');
+  assert.ok((await rows('events')).every(e=>e.status==='observed'&&e.outcome_code==='PAYMENT_CAPTURED_INVOICE_QUEUED'));
 });
 test('missing scope or a changed customer never creates an invoice plan',async()=>{
   const ledger=new Ledger(db,account),payload=event();

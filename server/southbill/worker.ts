@@ -88,8 +88,11 @@ export async function processNext(ledger: Ledger, client: Pick<SouthbillClient,'
       if (!(error instanceof SouthbillError)) throw error;
       await ledger.finish(job, 'review', error.code, payment); return true;
     }
-    // The observer freezes the plan. The separately enabled invoice worker may record owner-authorized manual settlement.
-    await ledger.finish(job, 'blocked', 'ORIGINAL_PAYMENT_ATTACHMENT_UNVERIFIED', payment, plan);
+    // The observer freezes the plan. The separately enabled invoice worker records the captured payment without sending the draft.
+    if(plan.status==='ready_for_prior_payment_recording')
+      await ledger.finish(job, 'observed', 'PAYMENT_CAPTURED_INVOICE_QUEUED', payment, plan);
+    else
+      await ledger.finish(job, 'blocked', 'ORIGINAL_PAYMENT_ATTACHMENT_UNVERIFIED', payment, plan);
   } catch (error) {
     const code = error instanceof SouthbillError ? error.code : 'PROCESSING_ERROR';
     if (code !== 'LEASE_LOST') await ledger.retry(job, code);

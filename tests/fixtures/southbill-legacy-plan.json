@@ -22,7 +22,8 @@
     "auto_send": false,
     "metadata": {
       "order_reference": "order_1",
-      "original_payment_id": "cs_1",
+      "source_payment": "pi_1",
+      "payment_record": "cs_1",
       "catalog_version": "pulseaw-six-29a06da5c504b302"
     },
     "line_items": [
@@ -34,10 +35,6 @@
       }
     ]
   },
-  "status": "awaiting_provider_contract",
-  "blockers": [
-    "ORIGINAL_PAYMENT_ATTACHMENT_UNVERIFIED",
-    "SINGLE_INVOICE_POLICY_UNVERIFIED",
-    "PAID_DOCUMENT_DELIVERY_UNVERIFIED"
-  ]
+  "status": "ready_for_prior_payment_recording",
+  "blockers": []
 }

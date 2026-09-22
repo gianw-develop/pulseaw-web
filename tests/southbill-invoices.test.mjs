@@ -28,12 +28,12 @@ const due=()=>db.query("UPDATE pulseaw_southbill.invoice_jobs SET next_attempt_a
 function provider(){
  const state={invoices:[],creates:0,marks:0,loseCreate:false,loseMark:false,keys:[],getTransform:x=>x};
  return {state,api:{
- find:async key=>({matches:state.invoices.filter(x=>x.metadata.reconciliation_key===key),next:null}),
+ find:async(sourcePayment,reconciliationRef)=>({matches:state.invoices.filter(x=>x.metadata.source_payment===sourcePayment||x.metadata.reconciliation_ref===reconciliationRef),next:null}),
  get:async id=>state.getTransform(structuredClone(state.invoices.find(x=>x.id===id))),
  create:async(payload,key)=>{
   state.creates++;state.keys.push(key);assert.equal(payload.auto_send,false);
   const subtotal=payload.line_items.reduce((sum,x)=>sum+x.unit_amount*x.quantity,0);
-  const inv={id:'inv_synthetic',object:'invoice',livemode:true,status:'draft',currency:'usd',subtotal,tax:0,total:subtotal,customer_email:payload.customer_email,metadata:payload.metadata,lines:{data:payload.line_items.map((x,i)=>({...x,id:'li_'+i,amount:x.unit_amount*x.quantity}))},amount_paid:0,amount_due:subtotal,paid_at:null};
+  const inv={id:'inv_synthetic',number:'PAW-0001',object:'invoice',livemode:true,status:'draft',currency:'usd',subtotal,tax:0,total:subtotal,customer_name:payload.customer_name,customer_email:payload.customer_email,metadata:payload.metadata,lines:{data:payload.line_items.map((x,i)=>({...x,id:'li_'+i,amount:x.unit_amount*x.quantity}))},amount_paid:0,amount_due:subtotal,paid_at:null};
   state.invoices.push(inv);
   if(state.loseCreate){state.loseCreate=false;throw new SouthbillError('INVOICE_NETWORK_ERROR');}
   return structuredClone(inv);
@@ -46,6 +46,10 @@ test('verified prior payment produces one paid invoice and never invokes send or
  await seed();const p=provider();assert.equal(await processInvoiceNext(store,readPayment,p.api),true);
  assert.equal((await job()).status,'paid');assert.equal((await job()).outcome_code,'PRIOR_PAYMENT_RECORDED_MANUALLY');
  assert.equal((await job()).paid_document_url,'https://payments.southbill.com/i/Abc123xyz');
+ assert.equal(p.state.keys[0],'inv-cs_invoice');assert.match(p.state.keys[1],/^paw_inv_[a-f0-9]{40}_paid$/);
+ assert.equal(p.state.invoices[0].metadata.source_payment,'cs_invoice');
+ assert.equal(p.state.invoices[0].metadata.payment_record,'cs_invoice');
+ assert.match(p.state.invoices[0].metadata.reconciliation_ref,/^paw_inv_[a-f0-9]{40}$/);
  assert.equal(await processInvoiceNext(store,readPayment,p.api),false);assert.equal(p.state.creates,1);assert.equal(p.state.marks,1);
  await ledger.enqueue({...event,id:'evt_second'});await processNext(ledger,{get:async kind=>kind==='events'?{...event,id:'evt_second'}:payment()});
  assert.equal(await processInvoiceNext(store,readPayment,p.api),false);assert.equal(p.state.creates,1);
@@ -59,6 +63,29 @@ test('lost mark-paid response reads paid state on retry and does not mark a seco
  await seed();const p=provider();p.state.loseMark=true;
  await processInvoiceNext(store,readPayment,p.api);assert.equal((await job()).status,'retry');
  await due();await processInvoiceNext(store,readPayment,p.api);assert.equal((await job()).status,'paid');assert.equal(p.state.creates,1);assert.equal(p.state.marks,1);
+});
+test('an invoice already found by source_payment blocks a duplicate even when its reconciliation reference differs',async()=>{
+ await seed();const p=provider();p.state.loseCreate=true;
+ await processInvoiceNext(store,readPayment,p.api);assert.equal(p.state.creates,1);
+ p.state.invoices[0].metadata.reconciliation_ref='another_order';
+ await due();await processInvoiceNext(store,readPayment,p.api);
+ assert.equal((await job()).status,'review');assert.equal((await job()).outcome_code,'INVOICE_PAYMENT_REFERENCE_MISMATCH');
+ assert.equal(p.state.creates,1);assert.equal(p.state.marks,0);
+});
+test('an externally opened invoice is never marked paid by the worker',async()=>{
+ await seed();const p=provider();const create=p.api.create;
+ p.api.create=async(...args)=>({...await create(...args),status:'open'});
+ await processInvoiceNext(store,readPayment,p.api);
+ assert.equal((await job()).status,'review');assert.equal((await job()).outcome_code,'INVOICE_STATUS_REQUIRES_REVIEW');assert.equal(p.state.marks,0);
+});
+test('paid completion requires the provider invoice number and public document URL',async()=>{
+ await seed();const p=provider();p.state.getTransform=x=>x.status==='paid'?({...x,hosted_invoice_url:undefined}):x;
+ await processInvoiceNext(store,readPayment,p.api);
+ assert.equal((await job()).outcome_code,'PAID_DOCUMENT_URL_UNVERIFIED');assert.equal((await job()).paid_document_url,null);
+ await db.query('TRUNCATE pulseaw_southbill.invoice_jobs,pulseaw_southbill.invoice_plans,pulseaw_southbill.payment_records,pulseaw_southbill.events,pulseaw_southbill.agreements');
+ await seed();const q=provider();const create=q.api.create;q.api.create=async(...args)=>{const inv=await create(...args);delete inv.number;return inv;};
+ await processInvoiceNext(store,readPayment,q.api);
+ assert.equal((await job()).outcome_code,'INVOICE_NUMBER_UNVERIFIED');assert.equal(q.state.marks,0);
 });
 test('uncertain creation after idempotency expiry never creates a fresh invoice',async()=>{
  await seed();await store.enqueue();await db.query("UPDATE pulseaw_southbill.invoice_jobs SET create_started_at=now()-interval '25 hours'");const p=provider();
@@ -109,5 +136,5 @@ test('refund after invoice completion requires accounting review and never issue
 });
 test('malformed pagination cannot be mistaken for proof that no invoice exists',async()=>{
  const client=new InvoiceClient('sk_live_synthetic_test',async()=>new Response(JSON.stringify({object:'list',has_more:true,data:[]})));
- await assert.rejects(()=>client.find('reconciliation_key'),/INVOICE_PAGINATION_INVALID/);
+ await assert.rejects(()=>client.find('pi_synthetic','reconciliation_key'),/INVOICE_PAGINATION_INVALID/);
 });

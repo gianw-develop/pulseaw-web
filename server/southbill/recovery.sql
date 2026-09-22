@@ -19,7 +19,7 @@ BEGIN
       ((status IN ('queued','retry') AND attempts<8 AND next_attempt_at<=now()) OR (status='processing' AND lease_until<now()))
   ) AND NOT EXISTS (
     SELECT 1 FROM pulseaw_southbill.invoice_plans p JOIN pulseaw_southbill.payment_records r USING(merchant_id,livemode,payment_id)
-    WHERE p.merchant_id='pulseaw' AND p.livemode=true AND p.status='awaiting_provider_contract'
+    WHERE p.merchant_id='pulseaw' AND p.livemode=true AND p.status='ready_for_prior_payment_recording'
       AND r.manual_review=false AND r.provider_status='succeeded'
       AND NOT EXISTS (SELECT 1 FROM pulseaw_southbill.invoice_jobs j WHERE j.merchant_id=p.merchant_id AND j.livemode=p.livemode AND j.payment_id=p.payment_id)
   ) AND NOT EXISTS (

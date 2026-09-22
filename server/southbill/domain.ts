@@ -120,16 +120,17 @@ export function planInvoice(payment: Payment, agreement: Agreement) {
   requireCondition(payment.amount === agreement.amountCents && payment.currency.toLowerCase() === 'usd', 'PAYMENT_TOTAL_MISMATCH');
   requireCondition(payment.customer_email?.trim().toLowerCase() === agreement.customerEmail.trim().toLowerCase(), 'PAYMENT_CUSTOMER_MISMATCH');
   const lines = allocate(payment.amount, agreement.approvedServiceIds, agreement.catalogVersion)!;
+  const sourcePayment = payment.payment_intent ?? payment.id;
   return {
     catalogVersion: agreement.catalogVersion, paymentId: payment.id, amountCents: payment.amount, currency: 'usd', lines,
     draftPayload: {
       currency: 'usd', customer_email: agreement.customerEmail, customer_name: agreement.customerName,
       auto_send: false,
-      metadata: { order_reference: agreement.reference, original_payment_id: payment.id, catalog_version: agreement.catalogVersion },
+      metadata: { order_reference: agreement.reference, source_payment: sourcePayment, payment_record: payment.id, catalog_version: agreement.catalogVersion },
       line_items: lines.map(item => ({ description: item.name + '\n' + item.description, quantity: 1, unit_amount: item.unitAmountCents, tax_rate: 0 })),
     },
-    status: 'awaiting_provider_contract',
-    blockers: ['ORIGINAL_PAYMENT_ATTACHMENT_UNVERIFIED', 'SINGLE_INVOICE_POLICY_UNVERIFIED', 'PAID_DOCUMENT_DELIVERY_UNVERIFIED'],
+    status: 'ready_for_prior_payment_recording',
+    blockers: [],
   };
 }
 export function attachPreviouslyCapturedPayment(): never {
