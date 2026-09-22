@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { catalog, catalogVersion, allocate, supportedAmounts, planInvoice, validateAgreement, attachPreviouslyCapturedPayment } from '../server/southbill/domain.ts';
+import { readFileSync } from 'node:fs';
+import { catalog, legacyCatalog, legacyCatalogVersion, individualCatalog, catalogVersion, allocate, supportedAmounts, planInvoice, validateAgreement, attachPreviouslyCapturedPayment } from '../server/southbill/domain.ts';
 import { verifySignature } from '../server/southbill/signature.ts';
 import { SouthbillClient } from '../server/southbill/client.ts';
 
-const all = catalog.map(x=>x.serviceId);
+const all = legacyCatalog.map(x=>x.serviceId);
 const agreement = () => ({
   accountKey:'pulseaw',merchantId:'merchant_pulseaw',livemode:true,reference:'order_1',expectedPaymentId:'cs_1',
   approvedServiceIds:['acquisition'],catalogVersion,amountCents:490000,currency:'usd',
@@ -17,13 +18,15 @@ const payment = () => ({
   id:'cs_1',livemode:true,status:'succeeded',amount:490000,currency:'USD',
   customer_name:'Synthetic Customer',customer_email:'buyer@example.invalid',reference:'order_1',
 });
-test('catalog is exactly the six website services with verified SouthBill IDs',()=>{
-  assert.deepEqual(catalog.map(x=>x.unitAmountCents),[150000,280000,390000,490000,650000,800000]);
-  assert.equal(new Set(catalog.map(x=>x.productId)).size,6);
+test('catalog preserves six packages and adds the twelve approved individual services',()=>{
+  assert.deepEqual(legacyCatalog.map(x=>x.unitAmountCents),[150000,280000,390000,490000,650000,800000]);
+  assert.deepEqual(individualCatalog.map(x=>x.unitAmountCents),[500,1000,1500,2000,2500,3500,5000,7500,10000,12500,15000,20000]);
+  assert.equal(catalog.length,18);assert.equal(new Set(catalog.map(x=>x.productId)).size,18);
+  assert.equal(new Set(catalog.map(x=>x.priceId)).size,18);
 });
 test('every exact subset conserves cents and uses each real eligible service at most once',()=>{
   for(let mask=1;mask<64;mask++){
-    const eligible=catalog.filter((_,i)=>mask&(1<<i));
+    const eligible=legacyCatalog.filter((_,i)=>mask&(1<<i));
     const amount=eligible.reduce((s,x)=>s+x.unitAmountCents,0);
     const items=allocate(amount,eligible.map(x=>x.serviceId));
     assert.equal(items.reduce((s,x)=>s+x.unitAmountCents*x.quantity,0),amount);
@@ -84,4 +87,31 @@ test('merchant read adapter rejects traversal and never leaks provider error bod
   await assert.rejects(()=>client.get('payments','../invoices'),/INVALID_RESOURCE_ID/);
   assert.equal(calls,0);
   await assert.rejects(()=>client.get('payments','cs_1'),error=>error.message==='PROVIDER_HTTP_403'&&!error.message.includes(key));
+});
+
+
+test('each approved individual service invoices its own exact price and cannot be replaced by a different scope',()=>{
+ for(const service of individualCatalog){
+  const doc={...agreement(),approvedServiceIds:[service.serviceId],amountCents:service.unitAmountCents};
+  const plan=planInvoice({...payment(),amount:service.unitAmountCents},doc);
+  assert.equal(plan.lines.length,1);assert.equal(plan.lines[0].serviceId,service.serviceId);
+  assert.equal(plan.draftPayload.line_items[0].unit_amount,service.unitAmountCents);
+ }
+ assert.equal(allocate(500,['cta-review']),null);
+ assert.equal(allocate(600,individualCatalog.map(x=>x.serviceId)),null);
+});
+
+test('publishing new services does not change previously frozen six-service invoice plans',()=>{
+ assert.equal(legacyCatalogVersion,'pulseaw-six-29a06da5c504b302');
+ const expected=JSON.parse(readFileSync(new URL('./fixtures/southbill-legacy-plan.json',import.meta.url),'utf8'));
+ const plan=planInvoice(payment(),{...agreement(),catalogVersion:legacyCatalogVersion});
+ assert.deepEqual(plan,expected);
+ assert.throws(()=>validateAgreement({...agreement(),catalogVersion:legacyCatalogVersion,approvedServiceIds:['utm-check'],amountCents:500}),/UNKNOWN_SERVICE/);
+});
+
+test('catalog-wide allocation remains deterministic and does not repeat a service',()=>{
+ const ids=catalog.map(x=>x.serviceId),total=catalog.reduce((sum,x)=>sum+x.unitAmountCents,0);
+ const lines=allocate(total,ids);assert.equal(lines.length,18);
+ assert.equal(new Set(lines.map(x=>x.serviceId)).size,18);assert.equal(lines.reduce((sum,x)=>sum+x.unitAmountCents,0),total);
+ assert.deepEqual(allocate(20000,['utm-check','landing-audit','ad-copy-pack','launch-readiness']).map(x=>x.serviceId),['launch-readiness']);
 });

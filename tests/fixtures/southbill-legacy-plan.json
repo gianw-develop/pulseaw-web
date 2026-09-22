@@ -1,0 +1,43 @@
+{
+  "catalogVersion": "pulseaw-six-29a06da5c504b302",
+  "paymentId": "cs_1",
+  "amountCents": 490000,
+  "currency": "usd",
+  "lines": [
+    {
+      "serviceId": "acquisition",
+      "name": "Paid Acquisition Launch",
+      "description": "One offer, one country and one advertising platform: Meta or Google. Includes up to three campaigns, six ad variants using client materials, conversion measurement and 30 days of monitoring and optimization from campaign activation. Includes a closing report. Advertising spend is separate; results are not guaranteed.",
+      "currency": "usd",
+      "unitAmountCents": 490000,
+      "productId": "prod_VGWp7bSDHYp9co",
+      "priceId": "price_1UFzloKZ1AwW6yFkldSXMFtG",
+      "quantity": 1
+    }
+  ],
+  "draftPayload": {
+    "currency": "usd",
+    "customer_email": "buyer@example.invalid",
+    "customer_name": "Synthetic Customer",
+    "auto_send": false,
+    "metadata": {
+      "order_reference": "order_1",
+      "original_payment_id": "cs_1",
+      "catalog_version": "pulseaw-six-29a06da5c504b302"
+    },
+    "line_items": [
+      {
+        "description": "Paid Acquisition Launch\nOne offer, one country and one advertising platform: Meta or Google. Includes up to three campaigns, six ad variants using client materials, conversion measurement and 30 days of monitoring and optimization from campaign activation. Includes a closing report. Advertising spend is separate; results are not guaranteed.",
+        "quantity": 1,
+        "unit_amount": 490000,
+        "tax_rate": 0
+      }
+    ]
+  },
+  "status": "awaiting_provider_contract",
+  "blockers": [
+    "ORIGINAL_PAYMENT_ATTACHMENT_UNVERIFIED",
+    "SINGLE_INVOICE_POLICY_UNVERIFIED",
+    "PAID_DOCUMENT_DELIVERY_UNVERIFIED"
+  ]
+}

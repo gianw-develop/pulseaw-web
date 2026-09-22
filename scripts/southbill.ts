@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import { catalog, catalogVersion, supportedAmounts, validateAgreement, isId, SouthbillError } from '../server/southbill/domain.ts';
+import { engagements } from '../app/engagements.ts';
+import { catalog, catalogVersion, legacyCatalogVersion, supportedAmounts, validateAgreement, isId, SouthbillError } from '../server/southbill/domain.ts';
 import type { Agreement } from '../server/southbill/domain.ts';
 import { connectDatabase } from '../server/southbill/database.ts';
 import { pulseawAccount } from '../server/southbill/account.ts';
@@ -13,19 +14,21 @@ import { processInvoiceNext } from '../server/southbill/invoice-worker.ts';
 const command = process.argv[2] ?? 'status';
 try {
   if (command === 'catalog') {
-    console.log(JSON.stringify({catalogVersion, products:catalog.map(x=>({id:x.serviceId,name:x.name,USD:x.unitAmountCents/100})),
-      supportedUSD:supportedAmounts(catalog.map(x=>x.serviceId)).map(x=>x/100)},null,2));
+    console.log(JSON.stringify({catalogVersion, legacyCatalogVersion, products:catalog.map(x=>({id:x.serviceId,name:x.name,USD:x.unitAmountCents/100})),
+      supportedAmountCount:supportedAmounts(catalog.map(x=>x.serviceId)).length},null,2));
   } else if (command === 'verify-catalog') {
     const client = new SouthbillClient(process.env.SOUTHBILL_API_KEY ?? '');
     for (const item of catalog) {
       const product = await client.get('products',item.productId);
+      const packageService=engagements.find(x=>x.id===item.serviceId);
+      const providerDescription=packageService ? [packageService.description,packageService.detail,'What we need from you: '+packageService.requirements,'One-time project fee in USD. Advertising spend, software subscriptions and other third-party costs are separate.'].join('\n\n'):item.description;
       const prices = Array.isArray(product.prices) ? product.prices : [];
       const price = prices.find(x=>x?.id === item.priceId);
-      if (product.id !== item.productId || product.name !== item.name || product.active === false ||
+      if (product.id !== item.productId || product.name !== item.name || product.description !== providerDescription || product.active === false ||
         !price || price.unit_amount !== item.unitAmountCents || price.currency?.toLowerCase() !== 'usd' || price.active === false || price.recurring != null)
         throw new SouthbillError('CATALOG_PROVIDER_MISMATCH');
     }
-    console.log('Six SouthBill products and prices verified; no writes.');
+    console.log(catalog.length+' SouthBill products and prices verified; no writes.');
   } else if (['status','migrate','register-agreement','process','process-invoice','invoice-status','requeue'].includes(command)) {
     const account = pulseawAccount(process.env);
     if (!process.env.SOUTHBILL_DATABASE_URL) throw new SouthbillError('PULSEAW_DATABASE_REQUIRED');

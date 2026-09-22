@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import { engagements } from '../../app/engagements.ts';
+import { individualServices } from '../../app/individual-services.ts';
+import { individualProviderIds } from './individual-provider-ids.ts';
 
 // accountKey is our ledger namespace; merchantId is an optional, verified provider ID.
 export type Account = Readonly<{ accountKey: string; livemode: boolean; merchantId?: string }>;
@@ -17,17 +19,23 @@ const providerIds: Record<string, readonly [string, string]> = {
   launch: ['prod_VGWpER8X3SxYbI', 'price_1UFzlqKZ1AwW6yFkZbeJ2alF'],
   founder: ['prod_VGWpKXP9avVKGf', 'price_1UFzltKZ1AwW6yFkTEYvA9Cu'],
 };
-export const catalog: readonly Service[] = Object.freeze(engagements.map(item => Object.freeze({
+export const legacyCatalog: readonly Service[] = Object.freeze(engagements.map(item => Object.freeze({
   serviceId: item.id, name: item.name, description: item.detail, currency: 'usd' as const,
   unitAmountCents: item.price * 100, productId: providerIds[item.id][0], priceId: providerIds[item.id][1],
 })));
+export const individualCatalog: readonly Service[] = Object.freeze(individualServices.map(item => Object.freeze({
+  serviceId:item.id,name:item.name,description:item.description,currency:'usd' as const,
+  unitAmountCents:item.price*100,productId:individualProviderIds[item.id][0],priceId:individualProviderIds[item.id][1],
+})));
+export const catalog: readonly Service[] = Object.freeze([...legacyCatalog,...individualCatalog]);
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonical);
   if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).sort(([a],[b]) => a < b ? -1 : a > b ? 1 : 0).map(([key,item]) => [key,canonical(item)]));
   return value;
 }
 export const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
-export const catalogVersion = 'pulseaw-six-' + digest(catalog).slice(0,16);
+export const legacyCatalogVersion = 'pulseaw-six-' + digest(legacyCatalog).slice(0,16);
+export const catalogVersion = 'pulseaw-catalog-' + digest(catalog).slice(0,16);
 export class SouthbillError extends Error {
   code: string;
   constructor(code: string) { super(code); this.name = 'SouthbillError'; this.code = code; }
@@ -49,32 +57,34 @@ export function verifyProviderMerchant(value: unknown, account: Account, mismatc
   requireCondition(account.merchantId !== undefined, 'PROVIDER_MERCHANT_ID_UNVERIFIED');
   requireCondition(value === account.merchantId, mismatchCode);
 }
-export function eligibleCatalog(ids: readonly string[]): readonly Service[] {
-  requireCondition(Array.isArray(ids) && ids.length > 0 && ids.length <= catalog.length, 'APPROVED_SCOPE_REQUIRED');
+export function resolveCatalog(version=catalogVersion):readonly Service[] {
+  requireCondition(version===catalogVersion || version===legacyCatalogVersion,'CATALOG_VERSION_MISMATCH');
+  return version===legacyCatalogVersion ? legacyCatalog:catalog;
+}
+export function eligibleCatalog(ids: readonly string[],version=catalogVersion): readonly Service[] {
+  const source=resolveCatalog(version);
+  requireCondition(Array.isArray(ids) && ids.length > 0 && ids.length <= source.length, 'APPROVED_SCOPE_REQUIRED');
   requireCondition(new Set(ids).size === ids.length, 'DUPLICATE_SCOPE_SERVICE');
-  requireCondition(ids.every(id => catalog.some(item => item.serviceId === id)), 'UNKNOWN_SERVICE');
-  return catalog.filter(item => ids.includes(item.serviceId));
+  requireCondition(ids.every(id => source.some(item => item.serviceId === id)), 'UNKNOWN_SERVICE');
+  return source.filter(item => ids.includes(item.serviceId));
 }
-/** Exact subsets of genuine, approved services only. No padding or repeated projects. */
-export function allocate(amountCents: number, approvedServiceIds: readonly string[]): Line[] | null {
+/** Exact, quantity-one selection from actual approved services. Dynamic programming avoids exponential growth. */
+export function allocate(amountCents: number, approvedServiceIds: readonly string[],version=catalogVersion): Line[] | null {
   requireCondition(Number.isSafeInteger(amountCents) && amountCents > 0 && amountCents % 100 === 0, 'WHOLE_USD_AMOUNT_REQUIRED');
-  const services = eligibleCatalog(approvedServiceIds);
-  const matches: Line[][] = [];
-  for (let mask = 1; mask < 2 ** services.length; mask++) {
-    const selected = services.filter((_, index) => mask & (1 << index));
-    if (selected.reduce((sum, item) => sum + item.unitAmountCents, 0) === amountCents)
-      matches.push(selected.map(item => ({ ...item, quantity: 1 })));
+  const services = eligibleCatalog(approvedServiceIds,version);
+  const best=new Map<number,Line[]>([[0,[]]]);
+  const key=(lines:Line[])=>lines.map(x=>x.serviceId).join('|');
+  for(const service of services) for(const [sum,lines] of [...best.entries()]) {
+    const next=sum+service.unitAmountCents;if(next>amountCents)continue;
+    const candidate:Line[]=[...lines,{...service,quantity:1}];const existing=best.get(next);
+    if(!existing || candidate.length<existing.length || (candidate.length===existing.length && key(candidate).localeCompare(key(existing))<0))best.set(next,candidate);
   }
-  matches.sort((a, b) => a.length - b.length ||
-    a.map(x => x.serviceId).join('|').localeCompare(b.map(x => x.serviceId).join('|')));
-  return matches[0] ?? null;
+  return best.get(amountCents)??null;
 }
-export function supportedAmounts(approvedServiceIds: readonly string[]): number[] {
-  const services = eligibleCatalog(approvedServiceIds);
-  const amounts = new Set<number>();
-  for (let mask = 1; mask < 2 ** services.length; mask++)
-    amounts.add(services.filter((_, i) => mask & (1 << i)).reduce((sum, item) => sum + item.unitAmountCents, 0));
-  return [...amounts].sort((a, b) => a - b);
+export function supportedAmounts(approvedServiceIds: readonly string[],version=catalogVersion): number[] {
+  const services=eligibleCatalog(approvedServiceIds,version);const amounts=new Set<number>([0]);
+  for(const item of services)for(const amount of [...amounts])amounts.add(amount+item.unitAmountCents);
+  amounts.delete(0);return [...amounts].sort((a,b)=>a-b);
 }
 export type Agreement = Account & {
   reference: string; expectedPaymentId: string; approvedServiceIds: string[];
@@ -88,7 +98,7 @@ export type Agreement = Account & {
 export function validateAgreement(agreement: Agreement): void {
   assertAccount(agreement);
   requireCondition(isId(agreement.reference) && isId(agreement.expectedPaymentId), 'PAYMENT_BINDING_REQUIRED');
-  requireCondition(agreement.catalogVersion === catalogVersion, 'CATALOG_VERSION_MISMATCH');
+  resolveCatalog(agreement.catalogVersion);
   requireCondition(agreement.currency === 'usd', 'USD_REQUIRED');
   for (const value of [agreement.scopeReference, agreement.consentReference, agreement.verifiedBy])
     requireCondition(typeof value === 'string' && value.trim().length >= 3 && value.length <= 500, 'VERIFIED_EVIDENCE_REQUIRED');
@@ -96,7 +106,7 @@ export function validateAgreement(agreement: Agreement): void {
   requireCondition(agreement.taxReviewed === true && agreement.taxRateBps === 0, 'TAX_REVIEW_REQUIRED');
   requireCondition(typeof agreement.customerName === 'string' && agreement.customerName.trim().length >= 2 && agreement.customerName.length <= 120, 'CUSTOMER_NAME_REQUIRED');
   requireCondition(typeof agreement.customerEmail === 'string' && agreement.customerEmail.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(agreement.customerEmail), 'CUSTOMER_EMAIL_REQUIRED');
-  requireCondition(allocate(agreement.amountCents, agreement.approvedServiceIds), 'AMOUNT_NOT_SUPPORTED_BY_SCOPE');
+  requireCondition(allocate(agreement.amountCents, agreement.approvedServiceIds, agreement.catalogVersion), 'AMOUNT_NOT_SUPPORTED_BY_SCOPE');
 }
 export type Payment = {
   id: string; livemode: boolean; status: string; amount: number; currency: string;
@@ -112,13 +122,13 @@ export function planInvoice(payment: Payment, agreement: Agreement) {
   requireCondition(payment.status === 'succeeded', 'PAYMENT_NOT_CAPTURED');
   requireCondition(payment.amount === agreement.amountCents && payment.currency.toLowerCase() === 'usd', 'PAYMENT_TOTAL_MISMATCH');
   requireCondition(payment.customer_email?.trim().toLowerCase() === agreement.customerEmail.trim().toLowerCase(), 'PAYMENT_CUSTOMER_MISMATCH');
-  const lines = allocate(payment.amount, agreement.approvedServiceIds)!;
+  const lines = allocate(payment.amount, agreement.approvedServiceIds, agreement.catalogVersion)!;
   return {
-    catalogVersion, paymentId: payment.id, amountCents: payment.amount, currency: 'usd', lines,
+    catalogVersion: agreement.catalogVersion, paymentId: payment.id, amountCents: payment.amount, currency: 'usd', lines,
     draftPayload: {
       currency: 'usd', customer_email: agreement.customerEmail, customer_name: agreement.customerName,
       auto_send: false,
-      metadata: { order_reference: agreement.reference, original_payment_id: payment.id, catalog_version: catalogVersion },
+      metadata: { order_reference: agreement.reference, original_payment_id: payment.id, catalog_version: agreement.catalogVersion },
       line_items: lines.map(item => ({ description: item.name + '\n' + item.description, quantity: 1, unit_amount: item.unitAmountCents, tax_rate: 0 })),
     },
     status: 'awaiting_provider_contract',

@@ -1,10 +1,10 @@
-# Proposed PulseAW individual services — USD 5–200
+# Approved PulseAW individual services — USD 5–200
 
-Status: proposal awaiting business approval; not published and no provider IDs assigned.
+Status: approved by the owner and created in SouthBill Live on 2026-09-22. All 12 products and their one-time USD prices were retrieved and verified.
 These are separate, narrowly scoped engagements. They do not replace or reprice the six existing packages.
 Each invoice must describe the service actually selected and paid for. Amount alone is not consent to an unrelated service.
 
-| ID | Service | USD | Concrete delivery | Proposed delivery time |
+| ID | Service | USD | Concrete delivery | Delivery time |
 |---|---|---:|---|---|
 | utm-check | UTM Link Check | 5 | Review one campaign URL; return corrected UTM parameters and a short explanation. No tracking installation. | 1 business day |
 | cta-review | CTA Copy Review | 10 | Review one call to action and deliver three replacement variants for the same offer. | 1 business day |
@@ -19,7 +19,24 @@ Each invoice must describe the service actually selected and paid for. Amount al
 | ad-copy-pack | Ad Copy Pack | 150 | Three ad copy variants for one offer on one platform, based on the client's supported claims; one revision. No campaign launch/media spend. | 3 business days |
 | launch-readiness | Launch Readiness Review | 200 | Review one offer's existing page, form and follow-up; deliver up to ten prioritized findings and a readiness checklist. No implementation. | 3 business days |
 
-All deliverables are digital and require the relevant client materials. Proposed timing starts after those materials arrive.
+All deliverables are digital and require the relevant client materials. Delivery timing starts after those materials arrive.
 No sales, traffic or campaign-performance guarantee. The existing PulseAW terms/refund policy remain the starting point; no new tax treatment is assumed.
 
-Approval needed: confirm PulseAW will offer and deliver these exact scopes, prices and timelines, or identify changes.
+The owner confirmed these scopes, prices and timelines. Product availability does not establish a completed payment or automatic paid invoice.
+
+## Verified Live identifiers
+
+| Service ID | Product ID | Price ID |
+|---|---|---|
+| utm-check | prod_VJ18fi6rMGiZeb | price_1UIP6RKZ1AwW6yFkTzgKNmEv |
+| cta-review | prod_VJ18APYpWMyvbS | price_1UIP6UKZ1AwW6yFkK3c2TYhG |
+| headline-review | prod_VJ18wTNXj6QueU | price_1UIP6WKZ1AwW6yFkxWtfy6ux |
+| form-review | prod_VJ18ZbyoyYJiGV | price_1UIP6ZKZ1AwW6yFkaWTxxbBK |
+| competitor-snapshot | prod_VJ18xcZA4P8Uyd | price_1UIP6bKZ1AwW6yFkRPon4x1g |
+| welcome-email-edit | prod_VJ18BNOz9aJwUJ | price_1UIP6eKZ1AwW6yFksDv8AGCw |
+| landing-audit | prod_VJ18lFJaeBC2wa | price_1UIP6hKZ1AwW6yFkad56GNmi |
+| tracking-plan | prod_VJ19vcpYY46MLN | price_1UIP6lKZ1AwW6yFk0jH6BY0D |
+| pipeline-review | prod_VJ19Gs6PmhSuD8 | price_1UIP6nKZ1AwW6yFkkgxeynbm |
+| automation-blueprint | prod_VJ19xrYBt4ZZGN | price_1UIP6pKZ1AwW6yFkoh0PhQBd |
+| ad-copy-pack | prod_VJ19EmMwnLg4pl | price_1UIP6rKZ1AwW6yFkqG5OXP3Q |
+| launch-readiness | prod_VJ19aVa8Sb7Zmv | price_1UIP6uKZ1AwW6yFkJeGPoSLJ |
