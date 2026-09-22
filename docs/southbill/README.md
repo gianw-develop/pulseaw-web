@@ -59,7 +59,7 @@ npm run southbill -- status
 The operator command reads an ignored `.env.local` when present. Start from `.env.southbill.example`;
 never copy secrets into README, state, GitHub, a browser bundle or chat.
 
-After confirming the actual PulseAW database, merchant ID and mode:
+After confirming the actual PulseAW database, account-specific credentials and mode:
 
 ```sh
 npm run southbill -- migrate --apply
@@ -75,6 +75,32 @@ SouthBill GET /payments, not a guessed session or a user-entered amount.
 The migration creates only the `pulseaw_southbill` private schema. Do not expose it through a public
 Data API; use a database role restricted to this schema. Configure TLS in the connection URL, using
 the database provider's verified settings. No TLS certificate checks are disabled by this code.
+
+## Account configuration
+
+The official Merchant API authenticates with the merchant API key. Webhooks use the endpoint's
+signing secret. The published examples do not require an internal SouthBill merchant UUID.
+Do not ask an operator to extract IDs from browser network requests.
+
+PulseAW uses accountKey=pulseaw plus livemode as a private, stable ledger namespace. This is
+an application label, not a provider-issued ID. For compatibility, the installed database column
+is still named merchant_id; it stores accountKey. No SQL schema migration is needed. The receiver
+was disabled and the ledger had no production events before this configuration correction.
+
+SOUTHBILL_MERCHANT_ID is optional and must remain empty unless SouthBill supplies a verified
+provider identity. If an authentic payload explicitly includes merchant_id without a configured
+verified value, it fails closed with PROVIDER_MERCHANT_ID_UNVERIFIED. A configured mismatch is
+also rejected. The internal accountKey must never be substituted for a provider merchant_id.
+Agreements include accountKey and, only when configured, merchantId.
+
+The dedicated endpoint secret, raw-body signature, explicit live mode and canonical event/payment
+reads using this merchant's own API key remain mandatory. Verify the six pinned catalog products
+before enabling the receiver. Optional identity configuration does not certify delivery, payment
+settlement or the post-payment invoice flow.
+
+Sources: [Merchant authentication](https://www.southbill.com/docs/getting-started/api-keys),
+[signature verification](https://www.southbill.com/docs/webhooks/signature-verification),
+[event retrieval](https://www.southbill.com/docs/api/events).
 
 ## Supabase connection
 
@@ -124,7 +150,7 @@ npx --yes --cache .southbill/npm-cache-supabase supabase@2.117.0 --output json p
 Do not omit the isolated configuration when running later commands. Set the Vercel project explicitly
 to prj_A8bpbNn1kNoFeDj4C6mYDr27HVwe and the Supabase project explicitly to rzyvatbujushojhryohf.
 
-Set SOUTHBILL_ENABLED=false until merchant, database and signing secret are verified.
+Set SOUTHBILL_ENABLED=false until account-specific credentials, database and signing secret are verified.
 When enabled, this version ONLY observes/reconciles and creates LOCAL invoice plans. It never fulfills
 services or generates a provider invoice. Never advertise the open-link workflow as operational.
 
@@ -155,7 +181,7 @@ See [provider assessment](provider-assessment.md) and [provider questions](suppo
 ## Verification performed
 
 - Skill toolkit: 20 offline tests passed.
-- PulseAW integration: 31 tests passed, including persistent PostgreSQL close/reopen, exclusive leases, duplicate events, invalid signatures and refund ordering. These use synthetic provider responses.
+- PulseAW integration: 37 tests passed, including persistent PostgreSQL close/reopen, exclusive leases, duplicate events, invalid signatures and refund ordering. These use synthetic provider responses.
 - New merchant read adapter: all six live product/price pairs verified with no writes.
 - Next.js production build and ESLint pass. Next.js upgraded from 16.2.9 to 16.3.5; npm audit reports zero vulnerabilities in the root dependency tree.
 - HTTP smoke check: homepage 200, disabled webhook 503, unauthorized worker 401.

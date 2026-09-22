@@ -1,4 +1,4 @@
-import { isId, isRecord, planInvoice, requireCondition, SouthbillError } from './domain.ts';
+import { isId, isRecord, planInvoice, requireCondition, verifyProviderMerchant, SouthbillError } from './domain.ts';
 import type { Payment } from './domain.ts';
 import { Ledger } from './ledger.ts';
 import type { Event } from './ledger.ts';
@@ -11,7 +11,7 @@ export function validateEvent(value: unknown, ledger: Ledger): Event {
     /^[a-z_]+(?:\.[a-z_]+)+$/.test(event.type) && Number.isSafeInteger(event.created) &&
     typeof event.livemode === 'boolean' && isRecord(event.data) && isRecord(event.data.object), 'INVALID_EVENT');
   requireCondition(event.livemode === ledger.account.livemode, 'EVENT_MODE_MISMATCH');
-  requireCondition(!event.merchant_id || event.merchant_id === ledger.account.merchantId, 'EVENT_ACCOUNT_MISMATCH');
+  verifyProviderMerchant(event.merchant_id, ledger.account, 'EVENT_ACCOUNT_MISMATCH');
   return event as Event;
 }
 const supported = new Set([
@@ -38,7 +38,7 @@ function parsePayment(object: Record<string, unknown>, ledger: Ledger): Payment 
     Number.isSafeInteger(object.amount) && Number(object.amount) > 0 && typeof object.currency === 'string' &&
     /^[A-Za-z]{3}$/.test(object.currency), 'PAYMENT_SHAPE_UNVERIFIED');
   requireCondition(object.livemode === ledger.account.livemode, 'PAYMENT_MODE_MISMATCH');
-  requireCondition(!object.merchant_id || object.merchant_id === ledger.account.merchantId, 'PAYMENT_ACCOUNT_MISMATCH');
+  verifyProviderMerchant(object.merchant_id, ledger.account, 'PAYMENT_ACCOUNT_MISMATCH');
   // Persist only fields required for reconciliation; no client secrets or payment instrument data.
   return {
     id: String(object.id), livemode: Boolean(object.livemode), status: String(object.status),

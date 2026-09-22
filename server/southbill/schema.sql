@@ -1,5 +1,7 @@
 -- Apply only to PulseAW's explicitly selected PostgreSQL database.
 -- This private schema does not alter the legacy Stripe tables.
+-- Legacy column name merchant_id stores our INTERNAL accountKey, not a SouthBill ID.
+-- Provider merchant IDs, if verified, belong to the account configuration and payload.
 CREATE SCHEMA IF NOT EXISTS pulseaw_southbill;
 REVOKE ALL ON SCHEMA pulseaw_southbill FROM PUBLIC;
 
